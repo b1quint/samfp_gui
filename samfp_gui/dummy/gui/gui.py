@@ -2,23 +2,20 @@
 
 from __future__ import print_function, division
 
-import configparser
 import datetime
 import logging
 import os
-import pkg_resources
 import sys
 import time
 
+import configparser
 from PyQt4 import QtCore, QtGui
 
-from . import scan
+from samfp_gui.scan import scan
 
 logging.basicConfig()
 log = logging.getLogger("samfp.scan")
 log.setLevel(logging.DEBUG)
-
-home_folder = os.path.expanduser("~")
 
 wavelength = {
         'Ha': 6562.78,
@@ -29,10 +26,9 @@ wavelength = {
         'Ne 6600': 6598.9529
     }
 
-
 class Main(QtGui.QMainWindow):
 
-    config = {'temp_file': os.path.join(home_folder, '.samfp_temp.ini')}
+    config = {'temp_file': '.samfp_temp.ini'}
 
     def __init__(self):
         super(Main, self).__init__()
@@ -246,39 +242,30 @@ class Main(QtGui.QMainWindow):
         return cfg
 
     def get_exit_action(self):
-
-        icon_path = pkg_resources.resource_filename(
-            'samfp_gui', 'icons/close.png')
-
-        exit_action = QtGui.QAction(QtGui.QIcon(icon_path),'&Exit', self)
+        exit_action = QtGui.QAction(
+            QtGui.QIcon(os.path.join(root, 'samfp/icons/exit-to-app.png'))
+            ,'&Exit', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.setStatusTip('Exit application')
         exit_action.triggered.connect(self.close)
-
         return exit_action
 
     def get_load_action(self):
-
-        icon_path = pkg_resources.resource_filename(
-            'samfp_gui', 'icons/load-icon.png')
-
-        load_action = QtGui.QAction(QtGui.QIcon(icon_path), '&Open', self)
+        load_action = QtGui.QAction(
+            QtGui.QIcon(os.path.join(root, 'samfp/icons/file-import.png')),
+            'Open', self)
         load_action.setShortcut('Ctrl+O')
         load_action.setStatusTip('Load config file.')
         load_action.triggered.connect(self.load_config_file)
-
         return load_action
 
     def get_save_action(self):
-
-        icon_path = pkg_resources.resource_filename(
-            'samfp_gui', 'icons/save-icon.png')
-
-        save_action = QtGui.QAction(QtGui.QIcon(icon_path), '&Save', self)
+        save_action = QtGui.QAction(
+            QtGui.QIcon(os.path.join(root, 'samfp/icons/content-save.png')),
+            'Open', self)
         save_action.setShortcut('Ctrl+S')
         save_action.setStatusTip('Save config file.')
         save_action.triggered.connect(self.save_config_file)
-
         return save_action
 
     def keyPressEvent(self, e):
