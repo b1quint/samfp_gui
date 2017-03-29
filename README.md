@@ -28,11 +28,14 @@ from within the repository folder.
 
 Once downloaded, enter the folder that was created and type:
 
-    $ pip install .
+    $ pip install -r requirements.txt
+    $ pip install . 
     
 If you are not a superuser you can either add the `--user`
-flag so PIP will install locally or you can use a Python Virtual
-Environment and installing it inside. 
+flag so [PIP will install locally](https://pip.pypa.io/en/stable/reference/pip_install/#id43) 
+or you can use a 
+[Python Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/) 
+and installing it inside. 
 
 ## Run
 
@@ -43,7 +46,9 @@ open a new terminal and run it.
 ## Feedback
 
 Plase, your feedback is important for us. If you have any question
-or any bug to report, use the Issue Tracker on this page. 
+or any bug to report, use the 
+[Issue Tracker ](https://github.com/b1quint/samfp_gui/issues)
+on this page. 
 
 ## Contact
 
