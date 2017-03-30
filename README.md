@@ -10,6 +10,15 @@ Also, if the FP Plugin is not running on the SAMI's machine, this
 program will not do anything actually. So you may want to connect 
 to it via VNC and make sure it is running properly.
 
+## Dependencies
+
+I am just now updating from PyQt4 to PyQt5 since it seems to be the default when
+ installing PyQt using the `conda install pyqt` command. Because of that, the
+ requirements also changed a bit. Here is the known requirements:
+ 
+- Python >= 2.6
+- PyQt >= 5
+
 ## Download
 
 You can download it from a terminal by typing:
