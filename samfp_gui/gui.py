@@ -703,12 +703,10 @@ class MyCentralWidget(QtWidgets.QFrame):
         overscan_factor = self.overscan_factor()
         sampling = self.sampling()
 
-        n_channels = 2 * self.finesse()
+        n_channels = overscan_factor * self.finesse() * sampling
         z_step = self.fwhm() / sampling
 
-        n_channels = round(overscan_factor * n_channels)
-
-        self.n_channels(n_channels)
+        self.n_channels(round(n_channels))
         self.z_step(- z_step)
 
 

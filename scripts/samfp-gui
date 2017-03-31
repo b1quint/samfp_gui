@@ -8,10 +8,6 @@ import pkg_resources
 
 if __name__ == "__main__":
 
-    icon_path = pkg_resources.resource_filename(
-        'samfp_gui', 'icons/load-file.png')
-    print(icon_path)
-
     app = QtWidgets.QApplication(sys.argv)
     ex = Main()
     sys.exit(app.exec_())
