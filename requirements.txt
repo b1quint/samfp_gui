@@ -1,2 +1,2 @@
-PyQt4
+pyqt==5
 configparser

@@ -163,6 +163,25 @@ def set_comment(comment):
     return message
 
 
+def set_binning(bin_size):
+    """
+    Set the bin size for the images. This is usually 4x4 pixels for the SAM-FP
+    mode so it will be set as default.
+
+    Parameters
+    ----------
+    bin_size (int) : bin size
+
+    Returns
+    -------
+    message (string) : DONE if successful
+    """
+    binx = bin_size
+    biny = bin_size
+    message = send_command('sami dhe set binning {:d} {:d}'.format(binx, biny))
+    return message
+
+
 def set_image_basename(basename):
     """
     Set the image basename.

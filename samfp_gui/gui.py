@@ -664,6 +664,8 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.abort_button.setEnabled(True)
         self.progress_bar.setEnabled(True)
 
+        scan.set_binning(4)
+
         scan.set_image_path(self.path())
         scan.set_image_basename(self.basename())
 
