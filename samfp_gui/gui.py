@@ -16,7 +16,7 @@ from . import scan
 
 logging.basicConfig()
 log = logging.getLogger("samfp.scan")
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 home_folder = os.path.expanduser("~")
 
@@ -641,6 +641,7 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.abort_button.setDisabled(True)
         self.progress_bar.setDisabled(True)
         self.step = 0
+        log.info("  Finished scan")
 
     def on_lamp_change(self):
         """
@@ -656,9 +657,7 @@ class MyCentralWidget(QtWidgets.QFrame):
 
     def scan_start(self):
 
-        self.current_sweep = 1
-        self.current_channel = 1
-        self.z = self.z_start()
+        log.info("  Starting scan: {}".format(self.scan_id()))
 
         self.total_sweeps = self.n_sweeps()
         self.total_channels = self.n_channels()
@@ -673,7 +672,6 @@ class MyCentralWidget(QtWidgets.QFrame):
         scan.set_binning(self.binning())
 
         scan.set_image_path(self.path())
-        scan.set_image_basename(self.basename())
 
         scan.set_image_type(self.obs_type())
         scan.set_target_name(self.target_name())
@@ -686,6 +684,7 @@ class MyCentralWidget(QtWidgets.QFrame):
         scan.set_scan_nchannels(self.n_channels())
 
         self.z = self.z_start()
+        self.step = self.step_fraction
         self.current_sweep = 1
         self.current_channel = 1
 
@@ -715,10 +714,14 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.n_channels(round(n_channels))
         self.z_step(- z_step)
 
-
     def timerEvent(self, e):
 
-        if self.step >= 100:
+        if self.current_channel > self.total_channels:
+            self.current_sweep += 1
+            self.current_channel = 1
+            self.z = self.z_start()
+
+        if self.step > 100:
             self.timer.stop()
             self.scan_abort()
             return
@@ -727,8 +730,15 @@ class MyCentralWidget(QtWidgets.QFrame):
             self.timer.stop()
             self.scan_abort()
 
-        log.debug("Sweep: {}, Channel {}, Z {}".format(
-            self.current_sweep, self.current_channel, self.z))
+        if self.current_sweep > self.n_sweeps:
+            self.timer.stop()
+            self.scan_abort()
+
+        log.info("   Sweep: {}, Channel {}, Z {}, {:03.1f} % ".format(
+            self.current_sweep, self.current_channel, self.z, self.step))
+
+        scan.set_image_basename(
+            "{:s}_{:03d}".format(self.basename(), self.current_channel))
 
         scan.fp_moveabs(int(round(self.z)))
         scan.set_scan_current_z(int(round(self.z)))
@@ -737,16 +747,11 @@ class MyCentralWidget(QtWidgets.QFrame):
         time.sleep(self.sleep_time())
         scan.expose()
 
-        self.step += self.step_fraction
-        self.progress_bar.setValue(self.step)
-
         self.current_channel += 1
         self.z += self.z_step()
 
-        if self.current_channel > self.total_channels:
-            self.current_channel = 1
-            self.current_sweep += 1
-            self.z = self.z_start()
+        self.step += self.step_fraction
+        self.progress_bar.setValue(self.step)
 
     def HLine(self):
         toto = QtWidgets.QFrame()
@@ -863,7 +868,7 @@ class MyLineEdit_Float(MyLineEdit):
         else:
             assert (isinstance(x, int) or isinstance(x, float))
             x = float(x)
-            self.line_edit.setText("{:.1f}".format(x))
+            self.line_edit.setText("{:.2f}".format(x))
             self._value = x
 
 class PageCalibrationScan(QtWidgets.QWidget):

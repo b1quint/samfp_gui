@@ -93,7 +93,7 @@ def fp_moveabs(z):
     """
     if 4095 < z or z < 0:
         raise (ValueError,
-               "z must be between 0 and 4095. Current value: {}".format(z))
+               "z must be between 0 and 4095. Current value: {:d}".format(z))
 
     msg = send_command("fp moveabs {:d}".format(z))
     if msg.lower() != "done":
