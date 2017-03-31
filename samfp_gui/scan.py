@@ -170,7 +170,7 @@ def set_binning(bin_size):
 
     Parameters
     ----------
-    bin_size (int) : bin size
+    bin_size (string) : bin size
 
     Returns
     -------
@@ -178,7 +178,7 @@ def set_binning(bin_size):
     """
     binx = bin_size
     biny = bin_size
-    message = send_command('sami dhe set binning {:d} {:d}'.format(binx, biny))
+    message = send_command('dhe set binning {:s} {:s}'.format(binx, biny))
     return message
 
 

@@ -125,6 +125,7 @@ class Main(QtWidgets.QMainWindow):
             central_widget.comment(cfg.get('image', 'comment'))
             central_widget.path(cfg.get('image', 'dir'))
             central_widget.target_name(cfg.get('image', 'title'))
+            central_widget.binning(cfg.get('image', 'binning'))
             central_widget.obs_type(cfg.get('image', 'type'))
 
             central_widget.exp_time(cfg.getfloat('obs', 'exptime'))
@@ -194,8 +195,8 @@ class Main(QtWidgets.QMainWindow):
         cfg.set('image', 'comment', central_widget.comment())
         cfg.set('image', 'dir', central_widget.path())
         cfg.set('image', 'title', central_widget.target_name())
-        cfg.set('image', 'type',
-                central_widget.obs_type.combo_box.currentText())
+        cfg.set('image', 'binning', central_widget.binning())
+        cfg.set('image', 'type', central_widget.obs_type())
 
         cfg.add_section('obs')
         cfg.set('obs', 'exptime', central_widget.exp_time())
@@ -452,6 +453,8 @@ class MyCentralWidget(QtWidgets.QFrame):
 
     def init_left_panel(self):
 
+        self.binning = MyComboBox("Image binning:", ['1', '2', '4'])
+
         self.obs_type = MyComboBox(
             "Observation type: ", ["DARK", "DFLAT", "OBJECT", "SFLAT", "ZERO"])
 
@@ -477,43 +480,46 @@ class MyCentralWidget(QtWidgets.QFrame):
         grid = QtWidgets.QGridLayout()
         grid.setSpacing(5)
 
-        grid.addWidget(self.obs_type.label, 0, 0)
-        grid.addWidget(self.obs_type.combo_box, 0, 1, 1, 2)
+        grid.addWidget(self.binning.label, 0, 0)
+        grid.addWidget(self.binning.combo_box, 0, 1, 1, 2)
 
-        grid.addWidget(self.target_name.label, 1, 0)
-        grid.addWidget(self.target_name.line_edit, 1, 1, 1, 2)
+        grid.addWidget(self.obs_type.label, 1, 0)
+        grid.addWidget(self.obs_type.combo_box, 1, 1, 1, 2)
 
-        grid.addWidget(self.comment.label, 2, 0)
-        grid.addWidget(self.comment.line_edit, 2, 1, 1, 2)
+        grid.addWidget(self.target_name.label, 2, 0)
+        grid.addWidget(self.target_name.line_edit, 2, 1, 1, 2)
 
-        grid.addWidget(self.HLine(), 3, 0, 1, 3)
+        grid.addWidget(self.comment.label, 3, 0)
+        grid.addWidget(self.comment.line_edit, 3, 1, 1, 2)
 
-        grid.addWidget(self.exp_time.label, 4, 0)
-        grid.addWidget(self.exp_time.line_edit, 4, 1, 1, 2)
+        grid.addWidget(self.HLine(), 4, 0, 1, 3)
 
-        grid.addWidget(self.n_frames.label, 5, 0)
-        grid.addWidget(self.n_frames.line_edit, 5, 1, 1, 2)
+        grid.addWidget(self.exp_time.label, 5, 0)
+        grid.addWidget(self.exp_time.line_edit, 5, 1, 1, 2)
 
-        grid.addWidget(self.HLine(), 6, 0, 1, 3)
+        grid.addWidget(self.n_frames.label, 6, 0)
+        grid.addWidget(self.n_frames.line_edit, 6, 1, 1, 2)
 
-        grid.addWidget(self.scan_id.label, 7, 0)
-        grid.addWidget(self.scan_id.line_edit, 8, 0, 1, 2)
-        grid.addWidget(self.scan_id.button, 8, 2)
+        grid.addWidget(self.HLine(), 7, 0, 1, 3)
 
-        grid.addWidget(self.n_sweeps.label, 9, 0)
-        grid.addWidget(self.n_sweeps.line_edit, 9, 1, 1, 2)
+        grid.addWidget(self.scan_id.label, 8, 0)
+        grid.addWidget(self.scan_id.line_edit, 9, 0, 1, 2)
+        grid.addWidget(self.scan_id.button, 9, 2)
 
-        grid.addWidget(self.n_channels.label, 10, 0)
-        grid.addWidget(self.n_channels.line_edit, 10, 1)
+        grid.addWidget(self.n_sweeps.label, 10, 0)
+        grid.addWidget(self.n_sweeps.line_edit, 10, 1, 1, 2)
 
-        grid.addWidget(self.z_start.label, 11, 0)
-        grid.addWidget(self.z_start.line_edit, 11, 1)
+        grid.addWidget(self.n_channels.label, 11, 0)
+        grid.addWidget(self.n_channels.line_edit, 11, 1)
 
-        grid.addWidget(self.z_step.label, 12, 0)
-        grid.addWidget(self.z_step.line_edit, 12, 1)
+        grid.addWidget(self.z_start.label, 12, 0)
+        grid.addWidget(self.z_start.line_edit, 12, 1)
 
-        grid.addWidget(self.sleep_time.label, 13, 0)
-        grid.addWidget(self.sleep_time.line_edit, 13, 1)
+        grid.addWidget(self.z_step.label, 13, 0)
+        grid.addWidget(self.z_step.line_edit, 13, 1)
+
+        grid.addWidget(self.sleep_time.label, 14, 0)
+        grid.addWidget(self.sleep_time.line_edit, 14, 1)
 
         grid.setAlignment(QtCore.Qt.AlignLeft)
         grid.setAlignment(QtCore.Qt.AlignTop)
@@ -664,7 +670,7 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.abort_button.setEnabled(True)
         self.progress_bar.setEnabled(True)
 
-        scan.set_binning(4)
+        scan.set_binning(self.binning())
 
         scan.set_image_path(self.path())
         scan.set_image_basename(self.basename())
