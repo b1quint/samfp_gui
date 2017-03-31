@@ -10,7 +10,7 @@ import pkg_resources
 import sys
 import time
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from . import scan
 
@@ -30,7 +30,7 @@ wavelength = {
     }
 
 
-class Main(QtGui.QMainWindow):
+class Main(QtWidgets.QMainWindow):
 
     config = {'temp_file': os.path.join(home_folder, '.samfp_temp.ini')}
 
@@ -41,13 +41,12 @@ class Main(QtGui.QMainWindow):
     def initUI(self):
 
         # Set the font of the ToolTip windows
-        QtGui.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
+        QtWidgets.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
 
         # Create the status bar
         self.status_bar = self.statusBar()
 
         # Create an action to leave the program
-        # TODO Get icons for these
         load_action = self.get_load_action()
         save_action = self.get_save_action()
         exit_action = self.get_exit_action()
@@ -83,7 +82,7 @@ class Main(QtGui.QMainWindow):
 
         # Figure out the screen resolution of our monitor.
         # And from this resolution, we get the center point.
-        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
 
         # get a rectangle specifying the geometry of the main window.
         # This includes any window frame
@@ -101,13 +100,13 @@ class Main(QtGui.QMainWindow):
     def closeEvent(self, event):
 
         self.save_temp_file()
-        # reply = QtGui.QMessageBox.question(self, 'Message',
+        # reply = QtWidgets.QMessageBox.question(self, 'Message',
         #                                    "Are you sure to quit?",
-        #                                    QtGui.QMessageBox.Yes |
-        #                                    QtGui.QMessageBox.No,
-        #                                    QtGui.QMessageBox.No)
+        #                                    QtWidgets.QMessageBox.Yes |
+        #                                    QtWidgets.QMessageBox.No,
+        #                                    QtWidgets.QMessageBox.No)
         #
-        # if reply == QtGui.QMessageBox.Yes:
+        # if reply == QtWidgets.QMessageBox.Yes:
         #     event.accept()
         # else:
         #     event.ignore()
@@ -250,7 +249,7 @@ class Main(QtGui.QMainWindow):
         icon_path = pkg_resources.resource_filename(
             'samfp_gui', 'icons/close.png')
 
-        exit_action = QtGui.QAction(QtGui.QIcon(icon_path),'&Exit', self)
+        exit_action = QtWidgets.QAction(QtGui.QIcon(icon_path),'&Exit', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.setStatusTip('Exit application')
         exit_action.triggered.connect(self.close)
@@ -262,7 +261,7 @@ class Main(QtGui.QMainWindow):
         icon_path = pkg_resources.resource_filename(
             'samfp_gui', 'icons/load-icon.png')
 
-        load_action = QtGui.QAction(QtGui.QIcon(icon_path), '&Open', self)
+        load_action = QtWidgets.QAction(QtGui.QIcon(icon_path), '&Open', self)
         load_action.setShortcut('Ctrl+O')
         load_action.setStatusTip('Load config file.')
         load_action.triggered.connect(self.load_config_file)
@@ -274,7 +273,7 @@ class Main(QtGui.QMainWindow):
         icon_path = pkg_resources.resource_filename(
             'samfp_gui', 'icons/save-icon.png')
 
-        save_action = QtGui.QAction(QtGui.QIcon(icon_path), '&Save', self)
+        save_action = QtWidgets.QAction(QtGui.QIcon(icon_path), '&Save', self)
         save_action.setShortcut('Ctrl+S')
         save_action.setStatusTip('Save config file.')
         save_action.triggered.connect(self.save_config_file)
@@ -288,7 +287,7 @@ class Main(QtGui.QMainWindow):
 
     def load_config_file(self):
         # TODO Isolate only configuration files
-        fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file', '.')
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '.')
         fname = str(fname)
         self.config_parse(fname)
 
@@ -300,7 +299,7 @@ class Main(QtGui.QMainWindow):
 
     def save_config_file(self):
         """Save a new configuration file"""
-        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save', os.getcwd())
+        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save', os.getcwd())
         fname = str(fname)
 
         temp_config = self.config_generate()
@@ -316,7 +315,7 @@ class Main(QtGui.QMainWindow):
 
         log.debug("Saved config file %s" % self.config['temp_file'])
 
-class MyCentralWidget(QtGui.QFrame):
+class MyCentralWidget(QtWidgets.QFrame):
 
     def __init__(self):
         super(MyCentralWidget, self).__init__()
@@ -333,7 +332,7 @@ class MyCentralWidget(QtGui.QFrame):
         self.do_connections()
 
         # Put all of them in the main grid -------------------------------------
-        main_grid = QtGui.QGridLayout()
+        main_grid = QtWidgets.QGridLayout()
 
         main_grid.addWidget(self.top_group, 0, 0, 1, 3)
         main_grid.addWidget(self.left_group, 1, 0)
@@ -428,17 +427,17 @@ class MyCentralWidget(QtGui.QFrame):
 
     def init_bottom_panel(self):
 
-        self.scan_button = QtGui.QPushButton("Scan")
-        self.abort_button = QtGui.QPushButton("Abort")
-        self.progress_bar = QtGui.QProgressBar()
+        self.scan_button = QtWidgets.QPushButton("Scan")
+        self.abort_button = QtWidgets.QPushButton("Abort")
+        self.progress_bar = QtWidgets.QProgressBar()
 
         self.scan_button.setEnabled(True)
         self.abort_button.setDisabled(True)
         self.progress_bar.setDisabled(True)
 
-        bottom_group = QtGui.QGroupBox()
+        bottom_group = QtWidgets.QGroupBox()
 
-        bottom_grid = QtGui.QGridLayout()
+        bottom_grid = QtWidgets.QGridLayout()
         bottom_grid.setSpacing(5)
 
         bottom_grid.addWidget(self.scan_button, 10, 0)
@@ -473,9 +472,9 @@ class MyCentralWidget(QtGui.QFrame):
         self.scan_id.button.clicked.connect(self.get_id)
         self.scan_id.line_edit.setMinimumWidth(200)
 
-        group = QtGui.QGroupBox()
+        group = QtWidgets.QGroupBox()
 
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setSpacing(5)
 
         grid.addWidget(self.obs_type.label, 0, 0)
@@ -527,7 +526,7 @@ class MyCentralWidget(QtGui.QFrame):
         self.basename = MyLineEdit("Basename", "")
         self.path = MyLineEdit("Path:", "")
 
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setSpacing(5)
 
         grid.addWidget(self.basename.label, 0, 0)
@@ -538,7 +537,7 @@ class MyCentralWidget(QtGui.QFrame):
         grid.setAlignment(QtCore.Qt.AlignLeft)
         grid.setAlignment(QtCore.Qt.AlignTop)
 
-        group = QtGui.QGroupBox()
+        group = QtWidgets.QGroupBox()
         group.setLayout(grid)
 
         return group
@@ -546,9 +545,9 @@ class MyCentralWidget(QtGui.QFrame):
     def init_middle_panel(self):
 
         # Initialize widgets ---
-        self.fp_label = QtGui.QLabel("Fabry-Perot")
-        self.fp_low_res_rb = QtGui.QRadioButton("Low-Resolution")
-        self.fp_high_res_rb = QtGui.QRadioButton("High-Resolution")
+        self.fp_label = QtWidgets.QLabel("Fabry-Perot")
+        self.fp_low_res_rb = QtWidgets.QRadioButton("Low-Resolution")
+        self.fp_high_res_rb = QtWidgets.QRadioButton("High-Resolution")
 
         self.fp_order = MyLineEdit_Float("Interference order at Ha:", 0)
         self.fp_gap_size = MyLineEdit_Float("Gap size [um]:", 0)
@@ -571,10 +570,10 @@ class MyCentralWidget(QtGui.QFrame):
         self.queensgate_constant.add_button("Get")
         self.finesse.add_button("Get")
 
-        self.set_scan_button = QtGui.QPushButton("Set scan parameters")
+        self.set_scan_button = QtWidgets.QPushButton("Set scan parameters")
 
         # Add them to the grid ---
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
         grid.setSpacing(5)
 
         grid.addWidget(self.fp_label, 0, 0, 1, 3)
@@ -613,7 +612,7 @@ class MyCentralWidget(QtGui.QFrame):
         grid.setAlignment(QtCore.Qt.AlignLeft)
         grid.setAlignment(QtCore.Qt.AlignTop)
 
-        group = QtGui.QGroupBox()
+        group = QtWidgets.QGroupBox()
         group.setLayout(grid)
         
         return group
@@ -623,7 +622,7 @@ class MyCentralWidget(QtGui.QFrame):
         self.calib_page = PageCalibrationScan()
         self.sci_page = PageScienceScan()
 
-        self.notebook = QtGui.QTabWidget()
+        self.notebook = QtWidgets.QTabWidget()
         self.notebook.addTab(self.calib_page, "Calibration Scan")
         self.notebook.addTab(self.sci_page, "Science Scan")
 
@@ -653,10 +652,10 @@ class MyCentralWidget(QtGui.QFrame):
 
         self.current_sweep = 1
         self.current_channel = 1
-        self.z = self.scan_page.z_start()
+        self.z = self.z_start()
 
-        self.total_sweeps = self.scan_page.n_sweeps()
-        self.total_channels = self.scan_page.n_channels()
+        self.total_sweeps = self.n_sweeps()
+        self.total_channels = self.n_channels()
         self.total_steps = self.total_channels * self.total_sweeps
         self.step_fraction = 1. / self.total_steps * 100
 
@@ -674,11 +673,11 @@ class MyCentralWidget(QtGui.QFrame):
         scan.set_image_nframes(self.n_frames())
         scan.set_image_exposure_time(self.exp_time())
 
-        scan.set_scan_id(self.scan_page.scan_id())
-        scan.set_scan_start(self.scan_page.z_start())
-        scan.set_scan_nchannels(self.scan_page.n_channels())
+        scan.set_scan_id(self.scan_id())
+        scan.set_scan_start(self.z_start())
+        scan.set_scan_nchannels(self.n_channels())
 
-        self.z = self.scan_page.z_start()
+        self.z = self.z_start()
         self.current_sweep = 1
         self.current_channel = 1
 
@@ -728,35 +727,35 @@ class MyCentralWidget(QtGui.QFrame):
         scan.set_scan_current_z(int(round(self.z)))
         scan.set_scan_current_sweep(self.current_sweep)
 
-        time.sleep(self.scan_page.sleep_time())
+        time.sleep(self.sleep_time())
         scan.expose()
 
         self.step += self.step_fraction
         self.progress_bar.setValue(self.step)
 
         self.current_channel += 1
-        self.z += self.scan_page.z_step()
+        self.z += self.z_step()
 
         if self.current_channel > self.total_channels:
             self.current_channel = 1
             self.current_sweep += 1
-            self.z = self.scan_page.z_start()
+            self.z = self.z_start()
 
     def HLine(self):
-        toto = QtGui.QFrame()
-        toto.setFrameShape(QtGui.QFrame.HLine)
-        toto.setFrameShadow(QtGui.QFrame.Sunken)
+        toto = QtWidgets.QFrame()
+        toto.setFrameShape(QtWidgets.QFrame.HLine)
+        toto.setFrameShadow(QtWidgets.QFrame.Sunken)
         return toto
 
 
-class MyComboBox(QtGui.QWidget):
+class MyComboBox(QtWidgets.QWidget):
 
     def __init__(self, label, options):
 
         super(MyComboBox, self).__init__()
 
-        self.label = QtGui.QLabel(label)
-        self.combo_box = QtGui.QComboBox()
+        self.label = QtWidgets.QLabel(label)
+        self.combo_box = QtWidgets.QComboBox()
         self.combo_box.addItems(options)
 
     def __call__(self, x=None):
@@ -770,12 +769,12 @@ class MyComboBox(QtGui.QWidget):
                 self.combo_box.setCurrentIndex(idx)
 
 
-class MyLineEdit(QtGui.QWidget):
+class MyLineEdit(QtWidgets.QWidget):
 
     def __init__(self, label, value):
         """
-        Initialize field that contains a label (QtGui.QLabel) and a text field
-         (QtGui.QLineEdit).
+        Initialize field that contains a label (QtWidgets.QLabel) and a text field
+         (QtWidgets.QLineEdit).
 
         Parameters
         ----------
@@ -785,8 +784,8 @@ class MyLineEdit(QtGui.QWidget):
         super(MyLineEdit, self).__init__()
 
         self.button = None
-        self.label = QtGui.QLabel(label)
-        self.line_edit = QtGui.QLineEdit(value)
+        self.label = QtWidgets.QLabel(label)
+        self.line_edit = QtWidgets.QLineEdit(value)
         self.line_edit.setAlignment(QtCore.Qt.AlignRight)
         self._value = value
 
@@ -799,15 +798,15 @@ class MyLineEdit(QtGui.QWidget):
             self._value = x
 
     def add_button(self, label):
-        self.button = QtGui.QPushButton(label)
+        self.button = QtWidgets.QPushButton(label)
 
 
 class MyLineEdit_Int(MyLineEdit):
 
     def __init__(self, label, number):
         """
-        Initialize field that contains a label (QtGui.QLabel) and a text field
-         (QtGui.QLineEdit).
+        Initialize field that contains a label (QtWidgets.QLabel) and a text field
+         (QtWidgets.QLineEdit).
 
         Parameters
         ----------
@@ -835,8 +834,8 @@ class MyLineEdit_Float(MyLineEdit):
 
     def __init__(self, label, number):
         """
-        Initialize field that contains a label (QtGui.QLabel) and a text field
-         (QtGui.QLineEdit).
+        Initialize field that contains a label (QtWidgets.QLabel) and a text field
+         (QtWidgets.QLineEdit).
 
         Parameters
         ----------
@@ -860,7 +859,7 @@ class MyLineEdit_Float(MyLineEdit):
             self.line_edit.setText("{:.1f}".format(x))
             self._value = x
 
-class PageCalibrationScan(QtGui.QWidget):
+class PageCalibrationScan(QtWidgets.QWidget):
 
     def __init__(self):
         super(PageCalibrationScan, self).__init__()
@@ -874,7 +873,7 @@ class PageCalibrationScan(QtGui.QWidget):
         key = self.lamp()
         self.wavelength(wavelength[key])
 
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
 
         grid.addWidget(self.lamp.label, 0, 0)
         grid.addWidget(self.lamp.combo_box, 0, 1)
@@ -887,7 +886,7 @@ class PageCalibrationScan(QtGui.QWidget):
         self.setLayout(grid)
 
 
-class PageScienceScan(QtGui.QWidget):
+class PageScienceScan(QtWidgets.QWidget):
     def __init__(self):
         super(PageScienceScan, self).__init__()
 
@@ -912,7 +911,7 @@ class PageScienceScan(QtGui.QWidget):
         self.wavelength.add_button("Get")
 
         # Put them inside the grid ---
-        grid = QtGui.QGridLayout()
+        grid = QtWidgets.QGridLayout()
 
         grid.addWidget(self.rest_wavelength.label, 0, 0)
         grid.addWidget(self.rest_wavelength.line_edit, 0, 1, 1, 2)
@@ -996,7 +995,7 @@ def calc_queensgate_constant(wavelength, free_spectra_range_bcv):
 
 if __name__ == '__main__':
 
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     #app.setStyle("cleanlooks")
     ex = Main()
     sys.exit(app.exec_())

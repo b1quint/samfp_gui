@@ -92,8 +92,8 @@ def fp_moveabs(z):
     z (int) : the current z position if the command was received successfully.
     """
     if 4095 < z or z < 0:
-        raise ValueError, "z must be between 0 and 4095. Current value: {}".format(
-            z)
+        raise (ValueError,
+               "z must be between 0 and 4095. Current value: {}".format(z))
 
     msg = send_command("fp moveabs {:d}".format(z))
     if msg.lower() != "done":
@@ -135,8 +135,9 @@ def send_command(command):
             continue
         break
     if s is None:
-        print('could not open socket')
-        sys.exit(1)
+        print('Could not send command: {:s}'.format(command))
+        return "ERROR"
+
     s.sendall(command)
     message = s.recv(1024)
     s.close()
@@ -247,7 +248,7 @@ def set_image_type(image_type):
     if image_type.upper() not in options:
         error_msg = "Image type {} ".format(image_type) + \
                     "not found within the available options"
-        raise ValueError, error_msg
+        raise (ValueError, error_msg)
 
     message = send_command('dhe set image.type {:s}'.format(image_type))
     return message
