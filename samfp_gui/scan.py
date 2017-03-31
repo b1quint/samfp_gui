@@ -388,6 +388,7 @@ def set_scan_current_z(z=0, key="FAPERSST"):
     message (string) : DONE if successful.
     """
     message = send_command('dhe dbs set {key:s} {z:d}'.format(**locals()))
+    log.debug(message)
     return message
 
 

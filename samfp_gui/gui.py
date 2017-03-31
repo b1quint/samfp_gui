@@ -461,8 +461,8 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.target_name = MyLineEdit("Target name:", "")
         self.comment = MyLineEdit("Comment:", "")
 
-        self.exp_time = MyLineEdit_Float("Exposure time [s]:", -1)
-        self.n_frames = MyLineEdit_Int("Frames per channel:", -1)
+        self.exp_time = MyLineEdit_Float("Exposure time [s]:", 1)
+        self.n_frames = MyLineEdit_Int("Frames per channel:", 1)
 
         self.scan_id = MyLineEdit("Scan ID:", "")
         self.n_channels = MyLineEdit_Int("Number of channels:", 1)
@@ -730,6 +730,7 @@ class MyCentralWidget(QtWidgets.QFrame):
         log.debug("Sweep: {}, Channel {}, Z {}".format(
             self.current_sweep, self.current_channel, self.z))
 
+        scan.fp_moveabs(int(round(self.z)))
         scan.set_scan_current_z(int(round(self.z)))
         scan.set_scan_current_sweep(self.current_sweep)
 
