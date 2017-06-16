@@ -1,14 +1,13 @@
 #!python
 
-from samfp_gui.gui import Main
+from samfp_gui.gui import MainWindow
 from PyQt5 import QtWidgets
 
 import sys
-import pkg_resources
 
 if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
-    ex = Main()
+    ex = MainWindow()
     sys.exit(app.exec_())
 

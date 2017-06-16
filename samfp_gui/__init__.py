@@ -1,2 +1,1 @@
-from . import gui
-from . import scan
+from . import custom_widgets, gui, methods, pages, scan
