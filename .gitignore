@@ -1,2 +1,6 @@
-.idea
 *.xml
+.idea/
+samfp_gui/__pycache__/
+samfp_gui/qt/
+samfp_gui/ui_files/
+samfp_gui/*.pyc
