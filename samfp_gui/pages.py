@@ -52,6 +52,18 @@ class PageScan(QtWidgets.QWidget):
 
         self.setLayout(hbox)
 
+    @property
+    def number_of_channels(self):
+        return self.n_channels()
+
+    @property
+    def number_of_sweeps(self):
+        return self.n_sweeps()
+
+    @property
+    def total_steps(self):
+        return self.number_of_channels * self.number_of_sweeps
+
 
 class PageCalibrationScan(PageScan):
 

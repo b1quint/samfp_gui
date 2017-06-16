@@ -431,18 +431,19 @@ class MyCentralWidget(QtWidgets.QFrame):
 
         self.setLayout(vbox)
 
-        # Connect events to widgets
-        self.connect_widgets()
-
         # Create a thread
         self.thread = QtCore.QThread()
-        self.thread.start()
 
-        # Create the process object and connect it to the thread
+        # Create the process object
         self.scan = Scan()
         self.scan.moveToThread(self.thread)
-        self.thread.started.connect(self.scan.start)
 
+        # Connect thread and process object
+        self.thread.started.connect(self.scan.start)
+        self.thread.finished.connect(self.scan.stop)
+
+        # Connect events to widgets
+        self.connect_widgets()
 
     def connect_widgets(self):
         """Connect all the events to the existing widgets."""
@@ -465,6 +466,15 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.page_science.set_scanpars_button.clicked.connect(
             self.setup_calibration_scan
         )
+
+        # ToDo: Avoid leaving orphan scans when closing the main window
+        # self.close.connect(self.scan_abort)
+
+        # Connect the progress bar to the signal in the scan
+        self.scan.signal_value.connect(self.update_progress_bar)
+
+        # Also connect the scan state to the buttons state
+        self.scan.signal_running.connect(self.enable_scan)
 
     def init_bottom_panel(self):
         """Initialize the widgets at the bottom of the screen."""
@@ -570,24 +580,27 @@ class MyCentralWidget(QtWidgets.QFrame):
         # Just some debug level
         log.debug('"Abort" buttom pressed.')
 
-        # Control the widgets
-        self.scan_button.setEnabled(True)
-        self.abort_button.setDisabled(True)
-        self.progress_bar.setDisabled(True)
-
-        # Quit gently the thread
+        # Gently quit the thread
         self.scan.stop()
         self.thread.quit()
+        self.thread.wait()  # block until your thread as properly finished.
 
     def scan_start(self):
 
         # Just some debug level
         log.debug('"Scan" buttom pressed.')
 
-        # Control the widgets
-        self.scan_button.setDisabled(True)
-        self.abort_button.setEnabled(True)
-        self.progress_bar.setEnabled(True)
+        # Configure the thread
+        _current_page = self.notebook.currentWidget()
+        self.scan.n_steps = _current_page.total_steps
+
+        # Make sure that the thread has stopped
+        if self.thread.isRunning():
+            log.debug('There is a thread still running. Killing it.')
+            self.thread.quit()
+            self.thread.wait()
+        else:
+            log.debug('No thread running.')
 
         # Start the thread
         self.thread.start()
@@ -661,49 +674,80 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.step += self.step_fraction
         self.progress_bar.setValue(self.step)
 
+    @pyqtSlot(int)
     def update_progress_bar(self, val):
         self.progress_bar.setValue(val)
+
+    @pyqtSlot(bool)
+    def enable_scan(self, val):
+        self.scan_button.setDisabled(val)
+        self.abort_button.setEnabled(val)
+        self.progress_bar.setEnabled(val)
 
 
 class Scan(QtCore.QObject):
 
-    signal = QtCore.pyqtSignal(int)
+    signal_value = QtCore.pyqtSignal(int)
+    signal_running = QtCore.pyqtSignal(bool)
 
     def __init__(self):
         super(Scan, self).__init__()
 
         self._step = None
-        self._isRunning = None
-        self._maxSteps = 20
+        self._isRunning = False
+        self._maxSteps = 1
+
+        self.signal_running.emit(self._isRunning)
+
+    @property
+    def n_steps(self):
+        return self._maxSteps
+
+    @n_steps.setter
+    def n_steps(self, value):
+        self._maxSteps = value
+
+    def on_change_value(self, value):
+        value = int(value * 100. / self._maxSteps)
+        self.signal_value.emit(value)
 
     def start(self):
+        """
+        This is what happens when the scan actually starts. Any configuration
+        have to be done before this is called or triggered.
+        """
 
         log.debug("Start scan.")
 
         # Start scan parameters
         self._step = 0
         self._isRunning = True
+        self.signal_running.emit(self._isRunning)
 
         # Running the scan
         while (self._step < self._maxSteps) and self._isRunning:
+
+            # Increment a step
+            self._step += 1
 
             # Sleep simulates operations within the server
             time.sleep(1)
 
             # When finished, emit a signal and print it
-            self.signal.emit(self._step)
+            self.on_change_value(self._step)
             log.debug("Current scan step: %d" % self._step)
 
-            # Increment a step
-            self._step += 1
+        # Leaving gracefully
+        self.stop()
 
 
     def stop(self):
-
-        # Stop the scan
-        log.debug("Force scan to stop.")
+        """
+        Stop the scan. This method can either be used to force the scan to stop
+        or to make sure that the scan will be finished properly.
+        """
         self._isRunning = False
-
+        self.signal_running.emit(self._isRunning)
 
 
 if __name__ == '__main__':
