@@ -590,9 +590,15 @@ class MyCentralWidget(QtWidgets.QFrame):
         # Just some debug level
         log.debug('"Scan" buttom pressed.')
 
+        # Saving temporary configuration file
+        main_window = self.parent()
+        main_window.save_config_file(main_window.temp_cfg_file)
+
         # Configure the thread
         _current_page = self.notebook.currentWidget()
         self.scan.n_steps = _current_page.total_steps
+        self.scan.config_file = main_window.temp_cfg_file
+        self.scan.on_change_value(0)
 
         # Make sure that the thread has stopped
         if self.thread.isRunning():
@@ -690,12 +696,14 @@ class Scan(QtCore.QObject):
     signal_value = QtCore.pyqtSignal(int)
     signal_running = QtCore.pyqtSignal(bool)
 
-    def __init__(self):
+    def __init__(self, is_simulation=None):
         super(Scan, self).__init__()
 
-        self._step = None
+        self.config_file = None
         self._isRunning = False
+        self._isSimulation = is_simulation
         self._maxSteps = 1
+        self._step = None
 
         self.signal_running.emit(self._isRunning)
 
@@ -725,17 +733,77 @@ class Scan(QtCore.QObject):
         self.signal_running.emit(self._isRunning)
 
         # Running the scan
-        while (self._step < self._maxSteps) and self._isRunning:
+        if self._isSimulation:
+            while (self._step < self._maxSteps) and self._isRunning:
 
-            # Increment a step
-            self._step += 1
+                # Increment a step
+                self._step += 1
 
-            # Sleep simulates operations within the server
-            time.sleep(1)
+                # Sleep simulates operations within the server
+                time.sleep(1)
 
-            # When finished, emit a signal and print it
-            self.on_change_value(self._step)
-            log.debug("Current scan step: %d" % self._step)
+                # When finished, emit a signal and print it
+                self.on_change_value(self._step)
+                log.debug("Current scan step: %d" % self._step)
+
+        else:
+            # Read the temp configuration file
+            cfg = configparser.RawConfigParser()
+            cfg.read(self.config_file)
+
+            # Parse configuration
+            scan.set_image_basename(str(cfg.get('file', 'basename')))
+            scan.set_image_path(str(cfg.get('file', 'path')))
+
+            scan.set_binning(int(cfg.get('obs', 'binning')))
+            scan.set_comment(str(cfg.get('obs', 'comment')))
+            scan.set_image_exposure_time(cfg.getfloat('obs', 'exptime'))
+            scan.set_image_nframes(cfg.getint('obs', 'nframes'))
+            scan.set_target_name(str(cfg.get('obs', 'title')))
+            scan.set_image_type(str(cfg.get('obs', 'type')))
+
+            current_page_index = int(cfg.get('gui', 'active_page'))
+            pages = ['scan', 'calib', 'science']
+            section = pages[current_page_index]
+
+            number_of_channels = cfg.getint(section, 'nchannels')
+            number_of_sweeps = cfg.getint(section, 'nsweeps')
+            z = cfg.getint(section, 'zstart')
+            dz = cfg.getfloat(section, 'zstep')
+
+            stime = 0.1
+
+            # Prepare the scan parameters
+            scan.set_scan_id()
+
+            for sweep in range(number_of_sweeps):
+
+                print("Moving FP to the initial Z = {:d}".format(z))
+                z = scan.fp_moveabs(z)
+                scan.set_scan_start(z)
+                scan.set_scan_current_sweep(sweep + 1)
+
+                for channel in range(number_of_channels):
+
+                    z = z + dz
+
+                    if self._isRunning is False:
+                        self.stop()
+                        return
+
+                    if 4095 < z or z < 0:
+                        log.warning("Z = {z:d} out of the allowed range [0, 4095]".format(z))
+                        continue
+
+                    # Increment a step
+                    self._step += 1
+                    self.on_change_value(self._step)
+
+                    scan.fp_moveabs(int(round(z)))
+                    scan.set_scan_current_z(int(round(z)))
+
+                    time.sleep(stime)
+                    scan.expose()
 
         # Leaving gracefully
         self.stop()
