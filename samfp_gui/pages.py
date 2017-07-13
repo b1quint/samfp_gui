@@ -13,16 +13,22 @@ class PageScan(QtWidgets.QWidget):
     def __init__(self):
         super(PageScan, self).__init__()
 
-        self.z_start = IntTField("Z Start [bcv]:", 1024)
-        self.z_step = IntTField("Z Step [bcv]:", -10)
+        self.id = TextTField("Scan ID", '')
+        self.id.add_button("Get")
+
         self.n_channels = IntTField("Number of channels:", 5)
         self.n_sweeps = IntTField("Number of sweeps:", 5)
+        self.z_start = IntTField("Z Start [bcv]:", 1024)
+        self.z_step = IntTField("Z Step [bcv]:", -10)
 
         max_width = 75
-        self.z_start.set_field_max_width(max_width)
-        self.z_step.set_field_max_width(max_width)
         self.n_channels.set_field_max_width(max_width)
         self.n_sweeps.set_field_max_width(max_width)
+        self.z_start.set_field_max_width(max_width)
+        self.z_step.set_field_max_width(max_width)
+
+        # Connect the buttons that will generate scan IDs
+        self.id.button.clicked.connect(self.set_id)
 
         self.initUI()
 
@@ -34,16 +40,20 @@ class PageScan(QtWidgets.QWidget):
         grid.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
         grid.addWidget(self.z_start.label, 0, 0)
-        grid.addWidget(self.z_start.line_edit, 0, 1)
+        grid.addWidget(self.z_start.line_edit, 0, 2)
 
         grid.addWidget(self.z_step.label, 1, 0)
-        grid.addWidget(self.z_step.line_edit, 1, 1)
+        grid.addWidget(self.z_step.line_edit, 1, 2)
 
         grid.addWidget(self.n_channels.label, 2, 0)
-        grid.addWidget(self.n_channels.line_edit, 2, 1)
+        grid.addWidget(self.n_channels.line_edit, 2, 2)
 
         grid.addWidget(self.n_sweeps.label, 3, 0)
-        grid.addWidget(self.n_sweeps.line_edit, 3, 1)
+        grid.addWidget(self.n_sweeps.line_edit, 3, 2)
+
+        grid.addWidget(self.id.label, 4, 0)
+        grid.addWidget(self.id.line_edit, 4, 2)
+        grid.addWidget(self.id.button, 4, 1)
 
         # Put inside a box layout to make it stick to the right ---
         hbox = QtWidgets.QHBoxLayout()
@@ -63,6 +73,14 @@ class PageScan(QtWidgets.QWidget):
     @property
     def total_steps(self):
         return self.number_of_channels * self.number_of_sweeps
+
+    def set_id(self):
+
+        from datetime import datetime
+        now = datetime.utcnow()
+        _id = now.strftime("SCAN_%Y%m%d_UTC%H%M%S")
+
+        self.id(_id)
 
 
 class PageCalibrationScan(PageScan):
@@ -133,7 +151,7 @@ class PageScienceScan(PageCalibrationScan):
 
     def __init__(self):
 
-        self.rest_wavelength = FloatTField("Rest wavelength [A]:", 6563)
+        self.rest_wavelength = FloatTField("Rest wavelength [A]:", 6562.98)
 
         self.combo_box = ComboBox("",
             ["Observed wavelength [A]",
@@ -143,13 +161,15 @@ class PageScienceScan(PageCalibrationScan):
 
         self.calc = QtWidgets.QPushButton("Get")
 
-        self.input = FloatTField("", 0)
-        self.output_1 = FloatTField("Systemic velocity [km / s]", 0)
+        self.input = FloatTField("", 6562.98)
+        self.output_1 = FloatTField("Redshift", 0)
         self.output_2 = FloatTField("Systemic velocity [km / s]", 0)
         self.cal_outputs_button = QtWidgets.QPushButton("Update outputs")
+        self.on_combobox_change()
 
-        self.output_1.line_edit.setDisabled(True)
-        self.output_2.line_edit.setDisabled(True)
+        #self.output_1.line_edit.setDisabled(True)
+        #self.output_2.line_edit.setDisabled(True)
+
         self.output_1.set_format("{:0.5f}")
         self.output_2.set_format("{:0.5f}")
 
@@ -159,6 +179,9 @@ class PageScienceScan(PageCalibrationScan):
         # Connect ---
         self.combo_box.combo_box.currentIndexChanged.connect(
             self.on_combobox_change
+        )
+        self.combo_box.combo_box.currentIndexChanged.connect(
+            self.input.line_edit.setFocus
         )
 
         self.cal_outputs_button.clicked.connect(

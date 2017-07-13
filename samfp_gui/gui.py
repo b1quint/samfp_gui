@@ -43,26 +43,33 @@ class MainWindow(QtWidgets.QMainWindow):
         # Set the font of the ToolTip windows
         QtWidgets.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
 
+        # Run in simulation mode?
+        self._am_i_simulating = True
+
         # Create the status bar
         self.status_bar = self.statusBar()
 
         # Create an action to leave the program
-        load_action = self.get_load_action()
-        save_action = self.get_save_action()
-        exit_action = self.get_exit_action()
+        self.load_action = self.get_load_action()
+        self.save_action = self.get_save_action()
+        self.toogle_connect_action = self.get_toogle_connect_action()
+        self.exit_action = self.get_exit_action()
 
         # Create the menu bar
-        menubar = self.menuBar()
-        menu = menubar.addMenu('&File')
-        menu.addAction(load_action)
-        menu.addAction(save_action)
-        menu.addAction(exit_action)
+        self.menubar = self.menuBar()
+        self.menubar._file = self.menubar.addMenu('&File')
+        self.menubar._file.addAction(self.load_action)
+        self.menubar._file.addAction(self.save_action)
+        self.menubar._file.addAction(self.exit_action)
 
         # Create the toolbar
         self.toolbar = self.addToolBar('Exit')
-        self.toolbar.addAction(save_action)
-        self.toolbar.addAction(load_action)
-        self.toolbar.addAction(exit_action)
+        self.toolbar.addAction(self.save_action)
+        self.toolbar.addAction(self.load_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.toogle_connect_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.exit_action)
 
         # Create the central widget
         central = MyCentralWidget()
@@ -123,6 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
         _cw.fp_gap_size(cfg.get('fp', 'gap_size'))
 
         scan_page = _cw.page_scan
+        scan_page.id(cfg.get('scan', 'id'))
         scan_page.n_channels(cfg.getint('scan', 'nchannels'))
         scan_page.n_sweeps(cfg.getint('scan', 'nsweeps'))
         scan_page.z_start(cfg.getint('scan', 'zstart'))
@@ -186,6 +194,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def config_generate(self):
 
         _cw = self.centralWidget()
+        _main = self.parent()
 
         cfg = configparser.RawConfigParser()
 
@@ -206,10 +215,12 @@ class MainWindow(QtWidgets.QMainWindow):
         cfg.set('fp', 'gap_size', _cw.fp_gap_size())
 
         cfg.add_section('gui')
+        cfg.set('gui', 'simulation', _main._am_i_simulation)
         cfg.set('gui', 'active_page', _cw.notebook.currentIndex())
 
         scan_page = _cw.page_scan
         cfg.add_section('scan')
+        cfg.set('scan', 'id', scan_page.id())
         cfg.set('scan', 'nchannels', scan_page.n_channels())
         cfg.set('scan', 'nsweeps', scan_page.n_sweeps())
         cfg.set('scan', 'zstart', scan_page.z_start())
@@ -301,6 +312,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return save_action
 
+    def get_toogle_connect_action(self):
+
+        icon_path = pkg_resources.resource_filename(
+            'samfp_gui', 'icons/disconnected-icon.png')
+
+        toogle_connect_action = QtWidgets.QAction(QtGui.QIcon(icon_path),
+                                                  '&Toogle Connect', self)
+        toogle_connect_action.setStatusTip('Start/Stop simulation mode.')
+        toogle_connect_action.triggered.connect(self.toogle_connection)
+
+        return toogle_connect_action
+
     def keyPressEvent(self, e):
 
         if e.key() == QtCore.Qt.Key_Escape:
@@ -376,6 +399,24 @@ class MainWindow(QtWidgets.QMainWindow):
             filename += ".cfg"
 
         return filename
+
+    def toogle_connection(self):
+
+        if self._am_i_simulating:
+
+            icon_path = pkg_resources.resource_filename(
+                'samfp_gui', 'icons/connected-icon.png')
+
+            self._am_i_simulating = False
+
+        else:
+
+            icon_path = pkg_resources.resource_filename(
+                'samfp_gui', 'icons/disconnected-icon.png')
+
+            self._am_i_simulating = True
+
+        self.toogle_connect_action.setIcon(QtGui.QIcon(icon_path))
 
 
 class MyCentralWidget(QtWidgets.QFrame):
@@ -461,13 +502,18 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.page_calibration.set_scanpars_button.clicked.connect(
             self.setup_calibration_scan
         )
+        self.page_calibration.set_scanpars_button.clicked.connect(
+            self.page_scan.set_id
+        )
 
         # Connect when we set the science scan pameters
         self.page_science.set_scanpars_button.clicked.connect(
             self.setup_calibration_scan
         )
+        self.page_science.set_scanpars_button.clicked.connect(
+            self.page_scan.set_id
+        )
 
-        # ToDo: Avoid leaving orphan scans when closing the main window
         # self.close.connect(self.scan_abort)
 
         # Connect the progress bar to the signal in the scan
@@ -475,6 +521,7 @@ class MyCentralWidget(QtWidgets.QFrame):
 
         # Also connect the scan state to the buttons state
         self.scan.signal_running.connect(self.enable_scan)
+
 
     def init_bottom_panel(self):
         """Initialize the widgets at the bottom of the screen."""
@@ -577,7 +624,7 @@ class MyCentralWidget(QtWidgets.QFrame):
 
     def scan_abort(self):
 
-        # Just some debug level
+        # Just some debug levelgi
         log.debug('"Abort" buttom pressed.')
 
         # Gently quit the thread
@@ -816,9 +863,3 @@ class Scan(QtCore.QObject):
         """
         self._isRunning = False
         self.signal_running.emit(self._isRunning)
-
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    ex = MainWindow()
-    sys.exit(app.exec_())
