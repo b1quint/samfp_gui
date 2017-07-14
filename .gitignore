@@ -2,3 +2,4 @@
 .idea/*.xml
 *.pyc
 samfp_gui/*.pyc
+samfp_gui/__pycache__/
