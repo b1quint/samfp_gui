@@ -1,2 +1,4 @@
+.idea
+.idea/*.xml
 *.pyc
 samfp_gui/*.pyc
