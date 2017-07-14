@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
 
         # Run in simulation mode?
-        self._am_i_simulating = True
+        self._am_i_simulation = True
 
         # Create the status bar
         self.status_bar = self.statusBar()
@@ -52,7 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create an action to leave the program
         self.load_action = self.get_load_action()
         self.save_action = self.get_save_action()
-        self.toogle_connect_action = self.get_toogle_connect_action()
+        # self.toogle_connect_action = self.get_toogle_connect_action()
         self.exit_action = self.get_exit_action()
 
         # Create the menu bar
@@ -67,8 +67,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.save_action)
         self.toolbar.addAction(self.load_action)
         self.toolbar.addSeparator()
-        self.toolbar.addAction(self.toogle_connect_action)
-        self.toolbar.addSeparator()
+        # self.toolbar.addAction(self.toogle_connect_action)
+        # self.toolbar.addSeparator()
         self.toolbar.addAction(self.exit_action)
 
         # Create the central widget
@@ -190,11 +190,11 @@ class MainWindow(QtWidgets.QMainWindow):
             sci_page.output_2(w_obs)
 
         _cw.notebook.setCurrentIndex(cfg.getint('gui', 'active_page'))
+        # self._am_i_simulation = cfg.get('gui', 'simulation')
 
     def config_generate(self):
 
         _cw = self.centralWidget()
-        _main = self.parent()
 
         cfg = configparser.RawConfigParser()
 
@@ -215,7 +215,7 @@ class MainWindow(QtWidgets.QMainWindow):
         cfg.set('fp', 'gap_size', _cw.fp_gap_size())
 
         cfg.add_section('gui')
-        cfg.set('gui', 'simulation', _main._am_i_simulation)
+        # cfg.set('gui', 'simulation', self._am_i_simulation)
         cfg.set('gui', 'active_page', _cw.notebook.currentIndex())
 
         scan_page = _cw.page_scan
@@ -400,23 +400,33 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return filename
 
-    def toogle_connection(self):
+    def toogle_connection(self, sim_state=None):
 
-        if self._am_i_simulating:
+        if sim_state is None:
 
-            icon_path = pkg_resources.resource_filename(
-                'samfp_gui', 'icons/connected-icon.png')
+            if self._am_i_simulation:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/connected-icon.png')
+                self._am_i_simulation = False
 
-            self._am_i_simulating = False
+            else:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/disconnected-icon.png')
+                self._am_i_simulation = True
 
         else:
 
-            icon_path = pkg_resources.resource_filename(
-                'samfp_gui', 'icons/disconnected-icon.png')
+            self._am_i_simulation = sim_state
+            if sim_state:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/disconnected-icon.png')
 
-            self._am_i_simulating = True
+            else:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/connected-icon.png')
 
         self.toogle_connect_action.setIcon(QtGui.QIcon(icon_path))
+        log.debug('Simulation mode is now {:}'.format(self._am_i_simulation))
 
 
 class MyCentralWidget(QtWidgets.QFrame):
