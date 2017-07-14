@@ -4,9 +4,8 @@ title: "SAM-FP: Graphical User Interface"
 description: "A Qt GUI for the SAM-FP observation mode at the SOAR Telescope."
 show_downloads: true
 
-site:
-  - github:
-      - repository_url: "https://github.com/b1quint/samfp_gui/tree/samfp_v0.1"
-      - zip_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.zip"
-      - tar_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.tar.gz"
+github:
+  repository_url: "https://github.com/b1quint/samfp_gui/tree/samfp_v0.1"
+  zip_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.zip"
+  tar_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.tar.gz"
 
