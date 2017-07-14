@@ -1,7 +1,5 @@
 # SAM-FP: Graphical User Interface
 
-...
-
 This package contains a graphical interface written using PyQt and Python 
 to control the SAM-FP mode at the SOAR telescope. Be aware that it will only 
 work if you are somehow inside SOAR's network since it uses TCP/IP to communicate

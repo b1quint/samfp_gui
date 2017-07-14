@@ -1,6 +1,7 @@
 theme: jekyll-theme-cayman
 
 title: "SAM-FP: Graphical User Interface"
+author: "Bruno C. Quint"
 description: "A Qt GUI for the SAM-FP observation mode at the SOAR Telescope."
 show_downloads: true
 

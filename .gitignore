@@ -1,3 +1,6 @@
 .idea
+.idea/*.xml
 *.xml
 *.pyc
+.cfg
+samfp_gui/__pycache__/
