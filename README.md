@@ -18,6 +18,12 @@ I am just now updating from PyQt4 to PyQt5 since it seems to be the default when
  
 - Python >= 2.6
 - PyQt >= 5
+- ConfigParser
+- NumPy
+
+We strongly recommend you to use the [Astroconda Channel](https://astroconda.readthedocs.io/en/latest/)
+since it is supposed to be an standard library and it was where this packaged 
+was developed on. 
 
 ## Download
 

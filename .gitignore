@@ -1,2 +1,4 @@
-.idea
-*.xml
+*.pyc
+samfp_gui/custom_widgets.pyc
+samfp_gui/methods.pyc
+samfp_gui/pages.pyc

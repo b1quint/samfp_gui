@@ -1,0 +1,20 @@
+
+calibration = (""
+    "\n#"
+    "\n# Inputs:"
+    "\n#   Fabry-Perot Used             {fp_gap:d} um"
+    "\n#                                p(Ha) = {fp_order:.2f}"
+    "\n#"
+    "\n#   Reference Wavelength         lambda_0 = {ref_wlength:.2f} A"
+    "\n#   Free Spectral Range          FSR = {fsr:.2f} bcv"
+    "\n#   Full-Width at Half-Maximum   fwhm = {fwhm:.2f} bcv"
+    "\n#"
+    "\n#   Sample Factor                f_s = {factor_sample:.2f}"
+    "\n#   Overscan Factor              f_o = {factor_overscan:.2f}"
+    "\n#"
+    "\n# Outputs:"
+    "\n#   Finesse                      F = {finesse:.2f}"
+    "\n#   Queensgate Constant          Q = {queensgate:.2f} bcv / A"
+    "\n#"
+    "")
+

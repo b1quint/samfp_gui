@@ -1,0 +1,13 @@
+#
+# Inputs:
+#   Reference Wavelength         lambda_0 = {ref_wlength:.2f} A
+#   Free Spectral Range          FSR = {fsr:.2f} bcv
+#   Full-Width at Half-Maximum   fwhm = {fwhm:.2f} bcv
+#
+#   Sample Factor                f_s = {factor_sample:.2f}
+#   Overscan Factor              f_o = {factor_overscan:.2f}
+#
+# Outputs:
+#   Finesse                      F = {finesse:.2f}
+#   Queensgate Constant          Q = {queensgate:.2f} bcv / A
+#

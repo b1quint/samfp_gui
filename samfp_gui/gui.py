@@ -1,41 +1,41 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division
+from __future__ import absolute_import, print_function, division
 
-import configparser
-import datetime
 import logging
 import os
-import pkg_resources
 import sys
 import time
 
+import configparser
+import pkg_resources
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from . import scan
+from .custom_widgets import ComboBox, FloatTField, IntTField, TextTField, HLine
+from .pages import PageScan, PageCalibrationScan, PageScienceScan
 
 logging.basicConfig()
 log = logging.getLogger("samfp.scan")
-log.setLevel(logging.INFO)
-
-home_folder = os.path.expanduser("~")
+log.setLevel(logging.DEBUG)
 
 wavelength = {
-        'Ha': 6562.78,
-        'SIIf': 6716.47,
-        'SIIF': 6730.85,
-        'NIIf': 6548.03,
-        'NIIF': 6583.41,
-        'Ne 6600': 6598.9529
-    }
+    'Ha': 6562.78,
+    'SIIf': 6716.47,
+    'SIIF': 6730.85,
+    'NIIf': 6548.03,
+    'NIIF': 6583.41,
+    'Ne 6600': 6598.9529
+}
 
 
-class Main(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
+    temp_cfg_file = os.path.join(os.path.expanduser("~"), '.samfp_temp.cfg')
 
-    config = {'temp_file': os.path.join(home_folder, '.samfp_temp.ini')}
-
-    def __init__(self):
-        super(Main, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
         self.initUI()
 
     def initUI(self):
@@ -43,26 +43,33 @@ class Main(QtWidgets.QMainWindow):
         # Set the font of the ToolTip windows
         QtWidgets.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
 
+        # Run in simulation mode?
+        self._am_i_simulation = True
+
         # Create the status bar
         self.status_bar = self.statusBar()
 
         # Create an action to leave the program
-        load_action = self.get_load_action()
-        save_action = self.get_save_action()
-        exit_action = self.get_exit_action()
+        self.load_action = self.get_load_action()
+        self.save_action = self.get_save_action()
+        # self.toogle_connect_action = self.get_toogle_connect_action()
+        self.exit_action = self.get_exit_action()
 
         # Create the menu bar
-        menubar = self.menuBar()
-        menu = menubar.addMenu('&File')
-        menu.addAction(load_action)
-        menu.addAction(save_action)
-        menu.addAction(exit_action)
+        self.menubar = self.menuBar()
+        self.menubar._file = self.menubar.addMenu('&File')
+        self.menubar._file.addAction(self.load_action)
+        self.menubar._file.addAction(self.save_action)
+        self.menubar._file.addAction(self.exit_action)
 
         # Create the toolbar
         self.toolbar = self.addToolBar('Exit')
-        self.toolbar.addAction(save_action)
-        self.toolbar.addAction(load_action)
-        self.toolbar.addAction(exit_action)
+        self.toolbar.addAction(self.save_action)
+        self.toolbar.addAction(self.load_action)
+        self.toolbar.addSeparator()
+        # self.toolbar.addAction(self.toogle_connect_action)
+        # self.toolbar.addSeparator()
+        self.toolbar.addAction(self.exit_action)
 
         # Create the central widget
         central = MyCentralWidget()
@@ -73,9 +80,10 @@ class Main(QtWidgets.QMainWindow):
         self.setWindowTitle('SAM-FP - Data-Acquisition')
         self.setWindowIcon(QtGui.QIcon('web.png'))
 
-        self.load_temp_file()
-        self.centralWidget().set_fp_pars()
+        # Load the persistence configuration file
+        self.load_config_file(self.temp_cfg_file)
 
+        # Display the main window
         self.show()
 
     def center(self):
@@ -98,159 +106,182 @@ class Main(QtWidgets.QMainWindow):
         self.move(qr.topLeft())
 
     def closeEvent(self, event):
-
-        self.save_temp_file()
-        # reply = QtWidgets.QMessageBox.question(self, 'Message',
-        #                                    "Are you sure to quit?",
-        #                                    QtWidgets.QMessageBox.Yes |
-        #                                    QtWidgets.QMessageBox.No,
-        #                                    QtWidgets.QMessageBox.No)
-        #
-        # if reply == QtWidgets.QMessageBox.Yes:
-        #     event.accept()
-        # else:
-        #     event.ignore()
+        self.save_config_file(self.temp_cfg_file)
+        return
 
     def config_parse(self, config_file):
 
-        central_widget = self.centralWidget()
-
-        log.debug('Loading config file: {}'.format(config_file))
+        _cw = self.centralWidget()
 
         cfg = configparser.RawConfigParser()
-        cfg.read("{}".format(config_file))
+        cfg.read("{:s}".format(config_file))
 
-        try:
-            central_widget.basename(cfg.get('image', 'basename'))
-            central_widget.comment(cfg.get('image', 'comment'))
-            central_widget.path(cfg.get('image', 'dir'))
-            central_widget.target_name(cfg.get('image', 'title'))
-            central_widget.binning(cfg.get('image', 'binning'))
-            central_widget.obs_type(cfg.get('image', 'type'))
+        _cw.basename(cfg.get('file', 'basename'))
+        _cw.path(cfg.get('file', 'path'))
 
-            central_widget.exp_time(cfg.getfloat('obs', 'exptime'))
-            central_widget.n_frames(cfg.getint('obs', 'nframes'))
+        _cw.binning(cfg.get('obs', 'binning'))
+        _cw.comment(cfg.get('obs', 'comment'))
+        _cw.exp_time(cfg.getfloat('obs', 'exptime'))
+        _cw.n_frames(cfg.getint('obs', 'nframes'))
+        _cw.obs_type(cfg.get('obs', 'type'))
+        _cw.target_name(cfg.get('obs', 'title'))
 
-            central_widget.scan_id(cfg.get('scan', 'id'))
-            central_widget.n_channels(cfg.getint('scan', 'nchannels'))
-            central_widget.n_sweeps(cfg.getint('scan', 'nsweeps'))
-            central_widget.z_start(cfg.getint('scan', 'zstart'))
-            central_widget.z_step(cfg.getfloat('scan', 'zstep'))
-            central_widget.sleep_time(cfg.getfloat('scan', 'stime'))
+        _cw.fp(cfg.get('fp', 'name'))
+        _cw.fp_gap_size(cfg.get('fp', 'gap_size'))
 
-            central_widget.notebook.setCurrentIndex(
-                cfg.getint('gui', 'active_page')
-            )
+        scan_page = _cw.page_scan
+        scan_page.id(cfg.get('scan', 'id'))
+        scan_page.n_channels(cfg.getint('scan', 'nchannels'))
+        scan_page.n_sweeps(cfg.getint('scan', 'nsweeps'))
+        scan_page.z_start(cfg.getint('scan', 'zstart'))
+        scan_page.z_step(cfg.getint('scan', 'zstep'))
 
-            # The calibration page ---
-            central_widget.calib_page.lamp(cfg.get('calib', 'lamp'))
-            central_widget.calib_page.wavelength(
-                wavelength[central_widget.calib_page.lamp()])
+        calib_page = _cw.page_calibration
+        calib_page.n_channels(cfg.getint('calib', 'nchannels'))
+        calib_page.n_sweeps(cfg.getint('calib', 'nsweeps'))
+        calib_page.z_start(cfg.getfloat('calib', 'zstart'))
+        calib_page.z_step(cfg.getfloat('calib', 'zstep'))
+        calib_page.ref_wavelength(cfg.getfloat('calib', 'ref_wav'))
+        calib_page.fsr(cfg.getfloat('calib', 'fsr'))
+        calib_page.fwhm(cfg.getfloat('calib', 'fwhm'))
+        calib_page.finesse(cfg.getfloat('calib', 'finess'))
+        calib_page.queensgate_constant(cfg.getfloat('calib', 'qgc'))
+        calib_page.sample_factor(cfg.getfloat('calib', 'sample'))
+        calib_page.overscan_factor(cfg.getfloat('calib', 'overscan'))
 
-            if cfg.getboolean('fp', 'low_res_fabry_perot'):
-                central_widget.fp_low_res_rb.setChecked(True)
-            else:
-                central_widget.fp_high_res_rb.setChecked(True)
+        sci_page = _cw.page_science
+        sci_page.n_channels(cfg.getint('science', 'nchannels'))
+        sci_page.n_sweeps(cfg.getint('science', 'nsweeps'))
+        sci_page.z_start(cfg.getfloat('science', 'zstart'))
+        sci_page.z_step(cfg.getfloat('science', 'zstep'))
+        sci_page.ref_wavelength(cfg.getfloat('science', 'ref_wav'))
+        sci_page.fsr(cfg.getfloat('science', 'fsr'))
+        sci_page.fwhm(cfg.getfloat('science', 'fwhm'))
+        sci_page.finesse(cfg.getfloat('science', 'finess'))
+        sci_page.queensgate_constant(cfg.getfloat('science', 'qgc'))
+        sci_page.sample_factor(cfg.getfloat('science', 'sample'))
+        sci_page.overscan_factor(cfg.getfloat('science', 'overscan'))
+        sci_page.rest_wavelength(cfg.getfloat('science', 'rest_wav'))
+        sci_page.combo_box(cfg.get('science', 'combo_box'))
+        sci_page.sci_fsr(cfg.getfloat('science', 'fsr_obs'))
 
-            central_widget.fp_gap_size(
-                cfg.getfloat('fp', 'gap_size')
-            )
-            central_widget.fp_order(
-                cfg.getfloat('fp', 'order')
-            )
-            central_widget.queensgate_constant(
-                cfg.getfloat('fp', 'queensgate_constant')
-            )
-            central_widget.finesse(
-                cfg.getfloat('fp', 'finesse')
-            )
-            central_widget.free_spectral_range(
-                cfg.getfloat('fp', 'free_spectral_range')
-            )
-            central_widget.fwhm(
-                cfg.getfloat('fp', 'fwhm')
-            )
-            central_widget.sampling(
-                cfg.getfloat('fp', 'sample_factor')
-            )
-            central_widget.overscan_factor(
-                cfg.getfloat('fp', 'overscan_factor')
-            )
+        z = cfg.getfloat('science', 'redshift')
+        w_obs = cfg.getfloat('science', 'obs_wav')
+        v = cfg.getfloat('science', 'velocity')
 
-        except configparser.NoOptionError as error:
-            log.warning("{}".format(error.option) + \
-                        " option not found in the input config file")
+        sci_page.systemic_velocity = v
+        sci_page.redshift = z
+        sci_page.observed_wavelength = w_obs
 
-        except configparser.NoSectionError as error:
-            log.warning("{}".format(error.section) + \
-                        " section not found in the input config file")
+        if sci_page.combo_box() == "Redshift":
+            sci_page.input(z)
+            sci_page.output_1.set_label("Observed wavelength [A]")
+            sci_page.output_1(w_obs)
+            sci_page.output_2.set_label("Systemic velocity [km / s]")
+            sci_page.output_2(v)
+
+        elif sci_page.combo_box() == "Observed wavelength [A]":
+            sci_page.input(w_obs)
+            sci_page.output_1(z)
+            sci_page.output_2(v)
+        else:
+            sci_page.input(v)
+            sci_page.output_1(z)
+            sci_page.output_2(w_obs)
+
+        _cw.notebook.setCurrentIndex(cfg.getint('gui', 'active_page'))
+        # self._am_i_simulation = cfg.get('gui', 'simulation')
 
     def config_generate(self):
 
-        central_widget = self.centralWidget()
+        _cw = self.centralWidget()
 
         cfg = configparser.RawConfigParser()
-        cfg.add_section('image')
-        cfg.set('image', 'basename', central_widget.basename())
-        cfg.set('image', 'comment', central_widget.comment())
-        cfg.set('image', 'dir', central_widget.path())
-        cfg.set('image', 'title', central_widget.target_name())
-        cfg.set('image', 'binning', central_widget.binning())
-        cfg.set('image', 'type', central_widget.obs_type())
+
+        cfg.add_section('file')
+        cfg.set('file', 'basename', _cw.basename())
+        cfg.set('file', 'path', _cw.path())
 
         cfg.add_section('obs')
-        cfg.set('obs', 'exptime', central_widget.exp_time())
-        cfg.set('obs', 'nframes', central_widget.n_frames())
-
-        cfg.add_section('scan')
-        cfg.set('scan', 'id', central_widget.scan_id())
-        cfg.set('scan', 'nchannels', central_widget.n_channels())
-        cfg.set('scan', 'nsweeps', central_widget.n_sweeps())
-        cfg.set('scan', 'stime', central_widget.sleep_time())
-        cfg.set('scan', 'zstart', central_widget.z_start())
-        cfg.set('scan', 'zstep', central_widget.z_step())
-
-        cfg.add_section('gui')
-        cfg.set('gui', 'active_page', central_widget.notebook.currentIndex())
-
-        cfg.add_section('calib')
-        cfg.set('calib', 'lamp', central_widget.calib_page.lamp())
-        cfg.set('calib', 'wavelength', central_widget.calib_page.wavelength())
-        
-        cfg.add_section('science')
-
+        cfg.set('obs', 'binning', _cw.binning())
+        cfg.set('obs', 'comment', _cw.comment())
+        cfg.set('obs', 'exptime', _cw.exp_time())
+        cfg.set('obs', 'nframes', _cw.n_frames())
+        cfg.set('obs', 'title', _cw.target_name())
+        cfg.set('obs', 'type', _cw.obs_type())
 
         cfg.add_section('fp')
-        if central_widget.fp_low_res_rb.isChecked():
-            cfg.set('fp', 'low_res_fabry_perot', True)
-        else:
-            cfg.set('fp', 'low_res_fabry_perot', False)
+        cfg.set('fp', 'name', _cw.fp())
+        cfg.set('fp', 'gap_size', _cw.fp_gap_size())
 
-        cfg.set('fp', 'order',
-                central_widget.fp_order())
-        cfg.set('fp', 'gap_size',
-                central_widget.fp_gap_size())
-        cfg.set('fp', 'queensgate_constant',
-                central_widget.queensgate_constant())
-        cfg.set('fp', 'finesse',
-                central_widget.finesse())
-        cfg.set('fp', 'free_spectral_range',
-                central_widget.free_spectral_range())
-        cfg.set('fp', 'fwhm',
-                central_widget.fwhm())
-        cfg.set('fp', 'sample_factor',
-                central_widget.sampling())
-        cfg.set('fp', 'overscan_factor',
-                central_widget.overscan_factor())
+        cfg.add_section('gui')
+        # cfg.set('gui', 'simulation', self._am_i_simulation)
+        cfg.set('gui', 'active_page', _cw.notebook.currentIndex())
+
+        scan_page = _cw.page_scan
+        cfg.add_section('scan')
+        cfg.set('scan', 'id', scan_page.id())
+        cfg.set('scan', 'nchannels', scan_page.n_channels())
+        cfg.set('scan', 'nsweeps', scan_page.n_sweeps())
+        cfg.set('scan', 'zstart', scan_page.z_start())
+        cfg.set('scan', 'zstep', scan_page.z_step())
+
+        calib_page = _cw.page_calibration
+        cfg.add_section('calib')
+        cfg.set('calib', 'nchannels', calib_page.n_channels())
+        cfg.set('calib', 'nsweeps', calib_page.n_sweeps())
+        cfg.set('calib', 'zstart', calib_page.z_start())
+        cfg.set('calib', 'zstep', calib_page.z_step())
+        cfg.set('calib', 'ref_wav', calib_page.ref_wavelength())
+        cfg.set('calib', 'fsr', calib_page.fsr())
+        cfg.set('calib', 'fwhm', calib_page.fwhm())
+        cfg.set('calib', 'finess', calib_page.finesse())
+        cfg.set('calib', 'qgc', calib_page.queensgate_constant())
+        cfg.set('calib', 'sample', calib_page.sample_factor())
+        cfg.set('calib', 'overscan', calib_page.overscan_factor())
+
+        sci_page = _cw.page_science
+        cfg.add_section('science')
+        cfg.set('science', 'nchannels', sci_page.n_channels())
+        cfg.set('science', 'nsweeps', sci_page.n_sweeps())
+        cfg.set('science', 'zstart', sci_page.z_start())
+        cfg.set('science', 'zstep', sci_page.z_step())
+        cfg.set('science', 'ref_wav', sci_page.ref_wavelength())
+        cfg.set('science', 'fsr', sci_page.fsr())
+        cfg.set('science', 'fwhm', sci_page.fwhm())
+        cfg.set('science', 'finess', sci_page.finesse())
+        cfg.set('science', 'qgc', sci_page.queensgate_constant())
+        cfg.set('science', 'sample', sci_page.sample_factor())
+        cfg.set('science', 'overscan', sci_page.overscan_factor())
+        cfg.set('science', 'rest_wav', sci_page.rest_wavelength())
+        cfg.set('science', 'combo_box', sci_page.combo_box())
+
+        if sci_page.combo_box() == "Redshift":
+            z = sci_page.input()
+            w_obs = sci_page.output_1()
+            v = sci_page.output_2()
+        elif sci_page.combo_box() == "Observed wavelength [A]":
+            w_obs = sci_page.input()
+            z = sci_page.output_1()
+            v = sci_page.output_2()
+        else:
+            v = sci_page.input()
+            z = sci_page.output_1()
+            w_obs = sci_page.output_2()
+
+        cfg.set('science', 'redshift', z)
+        cfg.set('science', 'velocity', v)
+        cfg.set('science', 'obs_wav', w_obs)
+        cfg.set('science', 'fsr_obs', sci_page.sci_fsr())
 
         return cfg
 
     def get_exit_action(self):
 
         icon_path = pkg_resources.resource_filename(
-            'samfp_gui', 'icons/close.png')
+            'samfp_gui', 'icons/close-icon.png')
 
-        exit_action = QtWidgets.QAction(QtGui.QIcon(icon_path),'&Exit', self)
+        exit_action = QtWidgets.QAction(QtGui.QIcon(icon_path), '&Exit', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.setStatusTip('Exit application')
         exit_action.triggered.connect(self.close)
@@ -281,163 +312,235 @@ class Main(QtWidgets.QMainWindow):
 
         return save_action
 
+    def get_toogle_connect_action(self):
+
+        icon_path = pkg_resources.resource_filename(
+            'samfp_gui', 'icons/disconnected-icon.png')
+
+        toogle_connect_action = QtWidgets.QAction(QtGui.QIcon(icon_path),
+                                                  '&Toogle Connect', self)
+        toogle_connect_action.setStatusTip('Start/Stop simulation mode.')
+        toogle_connect_action.triggered.connect(self.toogle_connection)
+
+        return toogle_connect_action
+
     def keyPressEvent(self, e):
 
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
 
-    def load_config_file(self):
-        # TODO Isolate only configuration files
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '.')
-        fname = str(fname)
-        self.config_parse(fname)
+    def load_config_file(self, filename=False):
 
-    def load_temp_file(self):
-        if os.path.exists(self.config['temp_file']):
-            self.config_parse(self.config['temp_file'])
+        if not filename:
+            filename = self.load_file_dialog()
+
+        try:
+            self.config_parse(filename)
+            log.debug("Loading configuration from: {:s}".format(filename))
+
+        except configparser.NoOptionError as error:
+            log.error("{}".format(error.option) +
+                      " option not found in the input config file.")
+
+        except configparser.NoSectionError as error:
+            log.error("{}".format(error.section) +
+                      " section not found in the input config file.")
+
+        except configparser.MissingSectionHeaderError as error:
+            log.error("{:s}".format(error.source) +
+                      " is not a valid configuration file.")
+
+    def load_file_dialog(self):
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        filename, _ = QFileDialog.getOpenFileName(
+            self, 'Open file', '.',
+            # "Config Files (*.cfg);;Text Files (*.txt);;All Files (*)",
+            options=options
+        )
+
+        return filename
+
+    def save_config_file(self, filename=False):
+        """
+        Save a new configuration file.
+
+        Parameters
+        ----------
+        filename (string) : The name of the file that will hold the
+            configuration. If None is given, open a dialog to ask the
+            user for one.
+        """
+
+        if not filename:
+            filename = self.save_file_dialog()
+
+        temp_config = self.config_generate()
+        with open(filename, 'w') as foo:
+            temp_config.write(foo)
+
+        log.debug("Saved config file: {:s}".format(filename))
+        self.setStatusTip("Saved config file: {:s}".format(filename))
+
+    def save_file_dialog(self):
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "QFileDialog.getSaveFileName()", "",
+            "Configuration Files (*.cfg);; All Files (*);;Text Files (*.txt)",
+            options=options
+        )
+
+        if os.path.splitext(filename)[-1] == "":
+            filename += ".cfg"
+
+        return filename
+
+    def toogle_connection(self, sim_state=None):
+
+        if sim_state is None:
+
+            if self._am_i_simulation:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/connected-icon.png')
+                self._am_i_simulation = False
+
+            else:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/disconnected-icon.png')
+                self._am_i_simulation = True
+
         else:
-            log.debug('Temp config file does not exists.')
 
-    def save_config_file(self):
-        """Save a new configuration file"""
-        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Save', os.getcwd())
-        fname = str(fname)
+            self._am_i_simulation = sim_state
+            if sim_state:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/disconnected-icon.png')
 
-        temp_config = self.config_generate()
-        with open(fname, 'w') as foo:
-            temp_config.write(foo)
+            else:
+                icon_path = pkg_resources.resource_filename(
+                    'samfp_gui', 'icons/connected-icon.png')
 
-    def save_temp_file(self):
-        """Save a temporary file for persistance"""
+        self.toogle_connect_action.setIcon(QtGui.QIcon(icon_path))
+        log.debug('Simulation mode is now {:}'.format(self._am_i_simulation))
 
-        temp_config = self.config_generate()
-        with open(self.config['temp_file'], 'w') as foo:
-            temp_config.write(foo)
-
-        log.debug("Saved config file %s" % self.config['temp_file'])
 
 class MyCentralWidget(QtWidgets.QFrame):
 
-    def __init__(self):
-        super(MyCentralWidget, self).__init__()
-        self.initUI()
+    def __init__(self, *args, **kwargs):
+        super(MyCentralWidget, self).__init__(*args, **kwargs)
 
-    def initUI(self):
-
-        self.bottom_group = self.init_bottom_panel()
-        self.left_group = self.init_left_panel()
-        self.middle_group = self.init_middle_panel()
-        self.right_group = self.init_right_panel()
-        self.top_group = self.init_top_panel()
-
-        self.do_connections()
-
-        # Put all of them in the main grid -------------------------------------
-        main_grid = QtWidgets.QGridLayout()
-
-        main_grid.addWidget(self.top_group, 0, 0, 1, 3)
-        main_grid.addWidget(self.left_group, 1, 0)
-        main_grid.addWidget(self.middle_group, 1, 1)
-        main_grid.addWidget(self.right_group, 1, 2)
-        main_grid.addWidget(self.bottom_group, 3, 0, 1, 3)
-
-        main_grid.setAlignment(QtCore.Qt.AlignTop)
-        main_grid.setAlignment(QtCore.Qt.AlignLeft)
-        self.setLayout(main_grid)
-
-        w = self.get_wavelength()
-
-        # Add the thread for the scan ------------------------------------------
-        self.timer = QtCore.QBasicTimer()
-        self.step = 0
-
-    def do_connections(self):
-
-        self.scan_button.clicked.connect(self.scan_start)
-        self.abort_button.clicked.connect(self.scan_abort)
-        self.set_scan_button.clicked.connect(self.set_scan_pars)
-
-        self.scan_id.line_edit.returnPressed.connect(self.get_id)
-
-        # Connect handlers -----------------------------------------------------
-        self.fp_low_res_rb.setChecked(True)
-
-        self.fp_low_res_rb.clicked.connect(self.set_fp_pars)
-        self.fp_high_res_rb.clicked.connect(self.set_fp_pars)
-
-        self.calib_page.lamp.combo_box.currentIndexChanged.connect(
-            self.on_lamp_change)
-
-        self.queensgate_constant.button.clicked.connect(
-            self.get_queensgate_constant)
-        self.queensgate_constant.line_edit.returnPressed.connect(
-            self.get_queensgate_constant)
-
-        self.finesse.button.clicked.connect(self.get_finesse)
-        self.finesse.line_edit.returnPressed.connect(self.get_finesse)
-
-
-    def get_finesse(self):
-        """
-        Use the current FSR and FWHM to calculate and set the Finesse.
-        """
-        try:
-            self.finesse(calc_finesse(self.free_spectral_range(), self.fwhm()))
-
-        except ZeroDivisionError as error:
-            main_widget = self.window()
-            main_widget.status_bar.showMessage(
-                "Error: Zero division while calculating the Finesse."
-            )
-
-    def get_queensgate_constant(self):
-        """
-        Use the current wavelength and the free-spectral-range to calculate
-        and set the Queensgate Constant.
-        """
-
-        w = self.get_wavelength()
-        FSR = self.free_spectral_range()
-
-        try:
-            QGC = calc_queensgate_constant(w, FSR)
-            self.queensgate_constant(QGC)
-
-        except ZeroDivisionError as error:
-
-            main_widget = self.window()
-            main_widget.status_bar.showMessage(
-                "Error: Zero division while calculating the Queensgate "
-                "Constant."
-            )
-
-    def get_id(self):
-        now = datetime.datetime.now()
-        s = now.strftime("SCAN_%Y%m%d_UTC%H%M%S")
-        self.scan_id(s)
-
-    def get_wavelength(self):
-
-        if self.calib_page.isActiveWindow():
-            key = str(self.calib_page.lamp.combo_box.currentText())
-            w = wavelength[key]
-        else:
-            w = self.sci_page.wavelength()
-
-        return w
-
-    def init_bottom_panel(self):
-
+        # Init bottom group
         self.scan_button = QtWidgets.QPushButton("Scan")
         self.abort_button = QtWidgets.QPushButton("Abort")
         self.progress_bar = QtWidgets.QProgressBar()
+
+        self.bottom_group = self.init_bottom_panel()
+
+        # Initilize left group
+        self.binning = ComboBox("Image binning:", ['1', '2', '4'])
+        self.obs_type = ComboBox("Observation type: ",
+                                 ["DARK", "DFLAT", "OBJECT", "SFLAT", "ZERO"])
+        self.target_name = TextTField("Target name:", "")
+        self.comment = TextTField("Comment:", "")
+        self.exp_time = FloatTField("Exposure time [s]:", 1)
+        self.sleep_time = FloatTField("Sleep time [s]:", 0)
+        self.n_frames = IntTField("Frames per channel:", 1)
+        self.fp = ComboBox("Fabry-Perot: ",
+                           ["Low-Resolution", "High-Resolution"])
+        self.fp_gap_size = FloatTField("Gap size [um]:", 44)
+
+        self.left_group = self.init_left_panel()
+
+        # Init top group
+        self.basename = TextTField("Basename", "")
+        self.path = TextTField("Path:", "")
+
+        self.top_group = self.init_top_panel()
+
+        # Initialize right group
+        self.page_scan = PageScan()
+        self.page_calibration = PageCalibrationScan()
+        self.page_science = PageScienceScan()
+
+        self.notebook = QtWidgets.QTabWidget()
+        self.right_group = self.init_right_panel()
+
+        # Put all of them in the main grid
+        hbox = QtWidgets.QHBoxLayout()
+        hbox.addWidget(self.left_group)
+        hbox.addWidget(self.right_group)
+
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.addWidget(self.top_group)
+        vbox.addLayout(hbox)
+        vbox.addWidget(self.bottom_group)
+
+        self.setLayout(vbox)
+
+        # Create a thread
+        self.thread = QtCore.QThread()
+
+        # Create the process object
+        self.scan = Scan()
+        self.scan.moveToThread(self.thread)
+
+        # Connect thread and process object
+        self.thread.started.connect(self.scan.start)
+        self.thread.finished.connect(self.scan.stop)
+
+        # Connect events to widgets
+        self.connect_widgets()
+
+    def connect_widgets(self):
+        """Connect all the events to the existing widgets."""
+
+        # Connect the start of the scan
+        self.scan_button.clicked.connect(self.scan_start)
+
+        # Connect the scan abort
+        self.abort_button.clicked.connect(self.scan_abort)
+
+        # Connect when the FP combo box change index/value
+        self.fp.combo_box.currentIndexChanged.connect(self.on_fp_change)
+
+        # Connect when we set the calibration scan pameters
+        self.page_calibration.set_scanpars_button.clicked.connect(
+            self.setup_calibration_scan
+        )
+        self.page_calibration.set_scanpars_button.clicked.connect(
+            self.page_scan.set_id
+        )
+
+        # Connect when we set the science scan pameters
+        self.page_science.set_scanpars_button.clicked.connect(
+            self.setup_calibration_scan
+        )
+        self.page_science.set_scanpars_button.clicked.connect(
+            self.page_scan.set_id
+        )
+
+        # self.close.connect(self.scan_abort)
+
+        # Connect the progress bar to the signal in the scan
+        self.scan.signal_value.connect(self.update_progress_bar)
+
+        # Also connect the scan state to the buttons state
+        self.scan.signal_running.connect(self.enable_scan)
+
+
+    def init_bottom_panel(self):
+        """Initialize the widgets at the bottom of the screen."""
 
         self.scan_button.setEnabled(True)
         self.abort_button.setDisabled(True)
         self.progress_bar.setDisabled(True)
 
         bottom_group = QtWidgets.QGroupBox()
-
         bottom_grid = QtWidgets.QGridLayout()
         bottom_grid.setSpacing(5)
 
@@ -452,28 +555,7 @@ class MyCentralWidget(QtWidgets.QFrame):
         return bottom_group
 
     def init_left_panel(self):
-
-        self.binning = MyComboBox("Image binning:", ['1', '2', '4'])
-
-        self.obs_type = MyComboBox(
-            "Observation type: ", ["DARK", "DFLAT", "OBJECT", "SFLAT", "ZERO"])
-
-        self.target_name = MyLineEdit("Target name:", "")
-        self.comment = MyLineEdit("Comment:", "")
-
-        self.exp_time = MyLineEdit_Float("Exposure time [s]:", 1)
-        self.n_frames = MyLineEdit_Int("Frames per channel:", 1)
-
-        self.scan_id = MyLineEdit("Scan ID:", "")
-        self.n_channels = MyLineEdit_Int("Number of channels:", 1)
-        self.n_sweeps = MyLineEdit_Int("Number of sweeps:", 1)
-        self.z_start = MyLineEdit_Int("Z Start [bcv]:", 1024)
-        self.z_step = MyLineEdit_Float("Z Step [bcv]:", 0)
-        self.sleep_time = MyLineEdit_Float("Sleep time [s]:", 0)
-
-        self.scan_id.add_button("Get ID")
-        self.scan_id.button.clicked.connect(self.get_id)
-        self.scan_id.line_edit.setMinimumWidth(200)
+        """Initialize the widgets at the left of the screen."""
 
         group = QtWidgets.QGroupBox()
 
@@ -481,45 +563,33 @@ class MyCentralWidget(QtWidgets.QFrame):
         grid.setSpacing(5)
 
         grid.addWidget(self.binning.label, 0, 0)
-        grid.addWidget(self.binning.combo_box, 0, 1, 1, 2)
+        grid.addWidget(self.binning.combo_box, 0, 1)
 
         grid.addWidget(self.obs_type.label, 1, 0)
-        grid.addWidget(self.obs_type.combo_box, 1, 1, 1, 2)
+        grid.addWidget(self.obs_type.combo_box, 1, 1)
 
         grid.addWidget(self.target_name.label, 2, 0)
-        grid.addWidget(self.target_name.line_edit, 2, 1, 1, 2)
+        grid.addWidget(self.target_name.line_edit, 2, 1)
 
         grid.addWidget(self.comment.label, 3, 0)
-        grid.addWidget(self.comment.line_edit, 3, 1, 1, 2)
+        grid.addWidget(self.comment.line_edit, 3, 1)
 
-        grid.addWidget(self.HLine(), 4, 0, 1, 3)
+        grid.addWidget(HLine(), 4, 0, 1, 3)
 
         grid.addWidget(self.exp_time.label, 5, 0)
-        grid.addWidget(self.exp_time.line_edit, 5, 1, 1, 2)
+        grid.addWidget(self.exp_time.line_edit, 5, 1)
 
         grid.addWidget(self.n_frames.label, 6, 0)
-        grid.addWidget(self.n_frames.line_edit, 6, 1, 1, 2)
+        grid.addWidget(self.n_frames.line_edit, 6, 1)
 
-        grid.addWidget(self.HLine(), 7, 0, 1, 3)
+        grid.addWidget(HLine(), 7, 0, 1, 3)
 
-        grid.addWidget(self.scan_id.label, 8, 0)
-        grid.addWidget(self.scan_id.line_edit, 9, 0, 1, 2)
-        grid.addWidget(self.scan_id.button, 9, 2)
+        grid.addWidget(self.fp.label, 8, 0)
+        grid.addWidget(self.fp.combo_box, 8, 1)
 
-        grid.addWidget(self.n_sweeps.label, 10, 0)
-        grid.addWidget(self.n_sweeps.line_edit, 10, 1, 1, 2)
-
-        grid.addWidget(self.n_channels.label, 11, 0)
-        grid.addWidget(self.n_channels.line_edit, 11, 1)
-
-        grid.addWidget(self.z_start.label, 12, 0)
-        grid.addWidget(self.z_start.line_edit, 12, 1)
-
-        grid.addWidget(self.z_step.label, 13, 0)
-        grid.addWidget(self.z_step.line_edit, 13, 1)
-
-        grid.addWidget(self.sleep_time.label, 14, 0)
-        grid.addWidget(self.sleep_time.line_edit, 14, 1)
+        grid.addWidget(self.fp_gap_size.label, 9, 0)
+        grid.addWidget(self.fp_gap_size.line_edit, 9, 1)
+        self.fp_gap_size.disable()
 
         grid.setAlignment(QtCore.Qt.AlignLeft)
         grid.setAlignment(QtCore.Qt.AlignTop)
@@ -528,9 +598,6 @@ class MyCentralWidget(QtWidgets.QFrame):
         return group
 
     def init_top_panel(self):
-
-        self.basename = MyLineEdit("Basename", "")
-        self.path = MyLineEdit("Path:", "")
 
         grid = QtWidgets.QGridLayout()
         grid.setSpacing(5)
@@ -548,171 +615,88 @@ class MyCentralWidget(QtWidgets.QFrame):
 
         return group
 
-    def init_middle_panel(self):
-
-        # Initialize widgets ---
-        self.fp_label = QtWidgets.QLabel("Fabry-Perot")
-        self.fp_low_res_rb = QtWidgets.QRadioButton("Low-Resolution")
-        self.fp_high_res_rb = QtWidgets.QRadioButton("High-Resolution")
-
-        self.fp_order = MyLineEdit_Float("Interference order at Ha:", 0)
-        self.fp_gap_size = MyLineEdit_Float("Gap size [um]:", 0)
-
-        self.queensgate_constant = MyLineEdit_Float(
-            "Queensgate Constant [A / bcv]:", 0)
-        self.finesse = MyLineEdit_Float(
-            "Finesse [--]:", 0)
-        self.free_spectral_range = MyLineEdit_Float(
-            "Free Spectral Range [bcv]:", 0)
-        self.fwhm = MyLineEdit_Float(
-            "Full-width at half-maximum [bcv]:", 0)
-
-        self.sampling = MyLineEdit_Float(
-            "Sampling [bcv / step]:", 1)
-
-        self.overscan_factor = MyLineEdit_Float(
-            "Overscan factor:", 1)
-
-        self.queensgate_constant.add_button("Get")
-        self.finesse.add_button("Get")
-
-        self.set_scan_button = QtWidgets.QPushButton("Set scan parameters")
-
-        # Add them to the grid ---
-        grid = QtWidgets.QGridLayout()
-        grid.setSpacing(5)
-
-        grid.addWidget(self.fp_label, 0, 0, 1, 3)
-        grid.addWidget(self.fp_low_res_rb, 1, 0, 1, 3)
-        grid.addWidget(self.fp_high_res_rb, 2, 0, 1, 3)
-
-        grid.addWidget(self.HLine(), 3, 0, 1, 3)
-
-        grid.addWidget(self.fp_gap_size.label, 4, 0)
-        grid.addWidget(self.fp_gap_size.line_edit, 4, 1, 1, 2)
-
-        grid.addWidget(self.free_spectral_range.label, 5, 0)
-        grid.addWidget(self.free_spectral_range.line_edit, 5, 1, 1, 2)
-
-        grid.addWidget(self.fwhm.label, 6, 0)
-        grid.addWidget(self.fwhm.line_edit, 6, 1, 1, 2)
-
-        grid.addWidget(self.queensgate_constant.label, 7, 0)
-        grid.addWidget(self.queensgate_constant.line_edit, 8, 0, 1, 2)
-        grid.addWidget(self.queensgate_constant.button, 8, 2)
-
-        grid.addWidget(self.finesse.label, 9, 0)
-        grid.addWidget(self.finesse.line_edit, 10, 0, 1, 2)
-        grid.addWidget(self.finesse.button, 10, 2)
-
-        grid.addWidget(self.HLine(), 11, 0, 1, 3)
-
-        grid.addWidget(self.sampling.label, 12, 0)
-        grid.addWidget(self.sampling.line_edit, 12, 1, 1, 2)
-
-        grid.addWidget(self.overscan_factor.label, 13, 0)
-        grid.addWidget(self.overscan_factor.line_edit, 13, 1, 1, 2)
-
-        grid.addWidget(self.set_scan_button, 14, 0, 1, 3)
-
-        grid.setAlignment(QtCore.Qt.AlignLeft)
-        grid.setAlignment(QtCore.Qt.AlignTop)
-
-        group = QtWidgets.QGroupBox()
-        group.setLayout(grid)
-        
-        return group
-
     def init_right_panel(self):
 
-        self.calib_page = PageCalibrationScan()
-        self.sci_page = PageScienceScan()
-
-        self.notebook = QtWidgets.QTabWidget()
-        self.notebook.addTab(self.calib_page, "Calibration Scan")
-        self.notebook.addTab(self.sci_page, "Science Scan")
+        self.notebook.addTab(self.page_scan, "Basic Scan")
+        self.notebook.addTab(self.page_calibration, "Calibration Scan")
+        self.notebook.addTab(self.page_science, "Science Scan")
 
         return self.notebook
 
+    def on_fp_change(self):
+
+        if self.fp().lower() == "low-resolution":
+            self.fp_gap_size(44)
+        elif self.fp().lower() == "high-resolution":
+            self.fp_gap_size(200)
+        else:
+            self.fp_gap_size(-1)
+
     def scan_abort(self):
 
-        self.timer.stop()
-        self.scan_button.setEnabled(True)
-        self.abort_button.setDisabled(True)
-        self.progress_bar.setDisabled(True)
-        self.step = 0
-        log.info("  Finished scan")
+        # Just some debug levelgi
+        log.debug('"Abort" buttom pressed.')
 
-    def on_lamp_change(self):
-        """
-        Does nothing for now. Check with Philippe if he wants this to deppend on
-        the source wavelength or not.
-        """
-        if self.calib_page.lamp() in wavelength.keys():
-            w = wavelength[self.calib_page.lamp()]
-            self.calib_page.wavelength(w)
-        # TODO - Change other parameters that deppend on wavelength
-        # TODO - Change paramaters when CALIB / SCI is selected
-            # and when the custom mode too
+        # Gently quit the thread
+        self.scan.stop()
+        self.thread.quit()
+        self.thread.wait()  # block until your thread as properly finished.
 
     def scan_start(self):
 
-        log.info("  Starting scan: {}".format(self.scan_id()))
+        # Just some debug level
+        log.debug('"Scan" buttom pressed.')
 
-        self.total_sweeps = self.n_sweeps()
-        self.total_channels = self.n_channels()
-        self.total_steps = self.total_channels * self.total_sweeps
-        self.step_fraction = 1. / self.total_steps * 100
+        # Saving temporary configuration file
+        main_window = self.parent()
+        main_window.save_config_file(main_window.temp_cfg_file)
 
-        self.timer.start(50, self)
-        self.scan_button.setDisabled(True)
-        self.abort_button.setEnabled(True)
-        self.progress_bar.setEnabled(True)
+        # Configure the thread
+        _current_page = self.notebook.currentWidget()
+        self.scan.n_steps = _current_page.total_steps
+        self.scan.config_file = main_window.temp_cfg_file
+        self.scan.on_change_value(0)
 
-        scan.set_binning(self.binning())
-
-        scan.set_image_path(self.path())
-
-        scan.set_image_type(self.obs_type())
-        scan.set_target_name(self.target_name())
-        scan.set_comment(self.comment())
-        scan.set_image_nframes(self.n_frames())
-        scan.set_image_exposure_time(self.exp_time())
-
-        scan.set_scan_id(self.scan_id())
-        scan.set_scan_start(self.z_start())
-        scan.set_scan_nchannels(self.n_channels())
-
-        self.z = self.z_start()
-        self.step = self.step_fraction
-        self.current_sweep = 1
-        self.current_channel = 1
-
-    def set_fp_pars(self):
-
-        if self.fp_low_res_rb.isChecked():
-            gap_size = 44.
+        # Make sure that the thread has stopped
+        if self.thread.isRunning():
+            log.debug('There is a thread still running. Killing it.')
+            self.thread.quit()
+            self.thread.wait()
         else:
-            gap_size = 200.
+            log.debug('No thread running.')
 
-        if self.calib_page.isActiveWindow():
-            w = wavelength[self.calib_page.lamp()]
-        else:
-            w = self.sci_page.wavelength()
+        # Start the thread
+        self.thread.start()
 
-        self.fp_gap_size(gap_size)
-        self.fp_order(calc_order(w, gap_size))
+    def setup_calibration_scan(self):
 
-    def set_scan_pars(self):
+        overscan_factor = self.page_calibration.overscan_factor()
+        sampling = self.page_calibration.sample_factor()
+        finesse = self.page_calibration.finesse()
+        fwhm = self.page_calibration.fwhm()
 
-        overscan_factor = self.overscan_factor()
-        sampling = self.sampling()
+        n_channels = overscan_factor * finesse * sampling
+        z_step = fwhm / sampling
 
-        n_channels = overscan_factor * self.finesse() * sampling
-        z_step = self.fwhm() / sampling
+        self.page_scan.n_channels(round(n_channels))
+        self.page_scan.z_step(- z_step)
 
-        self.n_channels(round(n_channels))
-        self.z_step(- z_step)
+    def setup_science_scan(self):
+
+        overscan_factor = self.page_science.overscan_factor()
+        sampling = self.page_science.sample_factor()
+
+        QGC = self.page_science.queensgate_constant()
+        finesse = self.page_science.finesse()
+
+        sci_fsr = self.page_science.observed_wavelength / QGC
+        sci_fwhm = finesse / sci_fsr
+
+        n_channels = overscan_factor * finesse * sampling
+        z_step = sci_fwhm / sampling
+
+        self.page_scan.n_channels(round(n_channels))
+        self.page_scan.z_step(- z_step)
 
     def timerEvent(self, e):
 
@@ -753,261 +737,139 @@ class MyCentralWidget(QtWidgets.QFrame):
         self.step += self.step_fraction
         self.progress_bar.setValue(self.step)
 
-    def HLine(self):
-        toto = QtWidgets.QFrame()
-        toto.setFrameShape(QtWidgets.QFrame.HLine)
-        toto.setFrameShadow(QtWidgets.QFrame.Sunken)
-        return toto
+    @pyqtSlot(int)
+    def update_progress_bar(self, val):
+        self.progress_bar.setValue(val)
+
+    @pyqtSlot(bool)
+    def enable_scan(self, val):
+        self.scan_button.setDisabled(val)
+        self.abort_button.setEnabled(val)
+        self.progress_bar.setEnabled(val)
 
 
-class MyComboBox(QtWidgets.QWidget):
+class Scan(QtCore.QObject):
 
-    def __init__(self, label, options):
+    signal_value = QtCore.pyqtSignal(int)
+    signal_running = QtCore.pyqtSignal(bool)
 
-        super(MyComboBox, self).__init__()
+    def __init__(self, is_simulation=None):
+        super(Scan, self).__init__()
 
-        self.label = QtWidgets.QLabel(label)
-        self.combo_box = QtWidgets.QComboBox()
-        self.combo_box.addItems(options)
+        self.config_file = None
+        self._isRunning = False
+        self._isSimulation = is_simulation
+        self._maxSteps = 1
+        self._step = None
 
-    def __call__(self, x=None):
+        self.signal_running.emit(self._isRunning)
 
-        if x is None:
-            return str(self.combo_box.currentText())
+    @property
+    def n_steps(self):
+        return self._maxSteps
+
+    @n_steps.setter
+    def n_steps(self, value):
+        self._maxSteps = value
+
+    def on_change_value(self, value):
+        value = int(value * 100. / self._maxSteps)
+        self.signal_value.emit(value)
+
+    def start(self):
+        """
+        This is what happens when the scan actually starts. Any configuration
+        have to be done before this is called or triggered.
+        """
+
+        log.debug("Start scan.")
+
+        # Start scan parameters
+        self._step = 0
+        self._isRunning = True
+        self.signal_running.emit(self._isRunning)
+
+        # Running the scan
+        if self._isSimulation:
+            while (self._step < self._maxSteps) and self._isRunning:
+
+                # Increment a step
+                self._step += 1
+
+                # Sleep simulates operations within the server
+                time.sleep(1)
+
+                # When finished, emit a signal and print it
+                self.on_change_value(self._step)
+                log.debug("Current scan step: %d" % self._step)
 
         else:
-            idx = self.combo_box.findText(x, QtCore.Qt.MatchFixedString)
-            if idx >= 0:
-                self.combo_box.setCurrentIndex(idx)
+            # Read the temp configuration file
+            cfg = configparser.RawConfigParser()
+            cfg.read(self.config_file)
+
+            # Parse configuration
+            scan.set_image_basename(str(cfg.get('file', 'basename')))
+            scan.set_image_path(str(cfg.get('file', 'path')))
+
+            scan.set_binning(int(cfg.get('obs', 'binning')))
+            scan.set_comment(str(cfg.get('obs', 'comment')))
+            scan.set_image_exposure_time(cfg.getfloat('obs', 'exptime'))
+            scan.set_image_nframes(cfg.getint('obs', 'nframes'))
+            scan.set_target_name(str(cfg.get('obs', 'title')))
+            scan.set_image_type(str(cfg.get('obs', 'type')))
+
+            current_page_index = int(cfg.get('gui', 'active_page'))
+            pages = ['scan', 'calib', 'science']
+            section = pages[current_page_index]
+
+            number_of_channels = cfg.getint(section, 'nchannels')
+            number_of_sweeps = cfg.getint(section, 'nsweeps')
+            z = cfg.getint(section, 'zstart')
+            dz = cfg.getfloat(section, 'zstep')
+
+            stime = 0.1
+
+            # Prepare the scan parameters
+            scan.set_scan_id()
+
+            for sweep in range(number_of_sweeps):
+
+                print("Moving FP to the initial Z = {:d}".format(z))
+                z = scan.fp_moveabs(z)
+                scan.set_scan_start(z)
+                scan.set_scan_current_sweep(sweep + 1)
+
+                for channel in range(number_of_channels):
+
+                    z = z + dz
+
+                    if self._isRunning is False:
+                        self.stop()
+                        return
+
+                    if 4095 < z or z < 0:
+                        log.warning("Z = {z:d} out of the allowed range [0, 4095]".format(z))
+                        continue
+
+                    # Increment a step
+                    self._step += 1
+                    self.on_change_value(self._step)
+
+                    scan.fp_moveabs(int(round(z)))
+                    scan.set_scan_current_z(int(round(z)))
+
+                    time.sleep(stime)
+                    scan.expose()
+
+        # Leaving gracefully
+        self.stop()
 
 
-class MyLineEdit(QtWidgets.QWidget):
-
-    def __init__(self, label, value):
+    def stop(self):
         """
-        Initialize field that contains a label (QtWidgets.QLabel) and a text field
-         (QtWidgets.QLineEdit).
-
-        Parameters
-        ----------
-        label (string) : the field label
-        text (string) : the text that will be inside the text box
+        Stop the scan. This method can either be used to force the scan to stop
+        or to make sure that the scan will be finished properly.
         """
-        super(MyLineEdit, self).__init__()
-
-        self.button = None
-        self.label = QtWidgets.QLabel(label)
-        self.line_edit = QtWidgets.QLineEdit(value)
-        self.line_edit.setAlignment(QtCore.Qt.AlignRight)
-        self._value = value
-
-    def __call__(self, x=None):
-        if x is None:
-            x = self.line_edit.text()
-            return x
-        else:
-            self.line_edit.setText(x)
-            self._value = x
-
-    def add_button(self, label):
-        self.button = QtWidgets.QPushButton(label)
-
-
-class MyLineEdit_Int(MyLineEdit):
-
-    def __init__(self, label, number):
-        """
-        Initialize field that contains a label (QtWidgets.QLabel) and a text field
-         (QtWidgets.QLineEdit).
-
-        Parameters
-        ----------
-        label (string) : the field label
-        number (int) : the number that will be set to the field
-        """
-        assert (isinstance(number, int) or isinstance(number, float))
-        number = int(number)
-
-        super(MyLineEdit_Int, self).__init__(label, "{:d}".format(number))
-        self._value = number
-
-    def __call__(self, x=None):
-        if x is None:
-            x = self.line_edit.text()
-            x = int(x)
-            return x
-        else:
-            x = int(x)
-            self.line_edit.setText("{:d}".format(x))
-            self._value = x
-
-
-class MyLineEdit_Float(MyLineEdit):
-
-    def __init__(self, label, number):
-        """
-        Initialize field that contains a label (QtWidgets.QLabel) and a text field
-         (QtWidgets.QLineEdit).
-
-        Parameters
-        ----------
-        label (string) : the field label
-        number (float) : the number that will be set to the field
-        """
-        assert (isinstance(number, int) or isinstance(number, float))
-        number = float(number)
-
-        super(MyLineEdit_Float, self).__init__(label, "{:.1f}".format(number))
-        self._value = number
-
-    def __call__(self, x=None):
-        if x is None:
-            x = self.line_edit.text()
-            x = float(x)
-            return x
-        else:
-            assert (isinstance(x, int) or isinstance(x, float))
-            x = float(x)
-            self.line_edit.setText("{:.2f}".format(x))
-            self._value = x
-
-class PageCalibrationScan(QtWidgets.QWidget):
-
-    def __init__(self):
-        super(PageCalibrationScan, self).__init__()
-        self.initUI()
-
-    def initUI(self):
-
-        self.lamp = MyComboBox("Lamp: ", wavelength.keys())
-        self.wavelength = MyLineEdit_Float("Wavelength [A]", 0)
-
-        key = self.lamp()
-        self.wavelength(wavelength[key])
-
-        grid = QtWidgets.QGridLayout()
-
-        grid.addWidget(self.lamp.label, 0, 0)
-        grid.addWidget(self.lamp.combo_box, 0, 1)
-
-        grid.addWidget(self.wavelength.label, 1, 0)
-        grid.addWidget(self.wavelength.line_edit, 1, 1)
-
-        grid.setAlignment(QtCore.Qt.AlignLeft)
-        grid.setAlignment(QtCore.Qt.AlignTop)
-        self.setLayout(grid)
-
-
-class PageScienceScan(QtWidgets.QWidget):
-    def __init__(self):
-        super(PageScienceScan, self).__init__()
-
-        # These are the variables that this page will have
-        self.redshift = None
-        self.heliocentric_velocity = None
-        self.systemic_velocity = None
-        self.rest_wavelength = None
-        self.wavelength = None
-
-        self.initUI()
-
-    def initUI(self):
-
-        # Initialize fields ---
-        self.rest_wavelength = MyLineEdit_Float("Rest wavelength [A]:", -1)
-        self.redshift = MyLineEdit_Float("Redshift [-]:", -1)
-        self.systemic_velocity = MyLineEdit_Float("Systemic velocity [km / s]:", -1)
-        self.wavelength = MyLineEdit_Float("Observed wavelength [A]:", -1)
-
-        self.systemic_velocity.add_button("Get")
-        self.wavelength.add_button("Get")
-
-        # Put them inside the grid ---
-        grid = QtWidgets.QGridLayout()
-
-        grid.addWidget(self.rest_wavelength.label, 0, 0)
-        grid.addWidget(self.rest_wavelength.line_edit, 0, 1, 1, 2)
-
-        grid.addWidget(self.redshift.label, 1, 0)
-        grid.addWidget(self.redshift.line_edit, 1, 1, 1, 2)
-
-        grid.addWidget(self.systemic_velocity.label, 2, 0)
-        grid.addWidget(self.systemic_velocity.line_edit, 3, 0, 1, 2)
-        grid.addWidget(self.systemic_velocity.button, 3, 2)
-
-        grid.addWidget(self.wavelength.label, 4, 0)
-        grid.addWidget(self.wavelength.line_edit, 5, 0, 1, 2)
-        grid.addWidget(self.wavelength.button, 5, 2)
-
-        grid.setAlignment(QtCore.Qt.AlignLeft)
-        grid.setAlignment(QtCore.Qt.AlignTop)
-        self.setLayout(grid)
-
-        self.systemic_velocity.button.clicked.connect(self.get_systemic_velocity)
-
-    def get_systemic_velocity(self):
-
-        print(const.c.to('km/s'))
-
-
-
-def calc_order(wavelength, gap_size):
-    """
-    Returns the FP interferential order.
-
-    Parameters
-    ----------
-    wavelength (float):
-    gap_size (float):
-
-    Returns
-    -------
-    order (float)
-    """
-    return 2 * (gap_size * 1e-6) / (wavelength * 1e-10)
-
-
-
-def calc_finesse(FSR, FWHM):
-    """
-    Returns the FP Finesse.
-
-    Parameters
-    ----------
-    FSR (float) : free-spectral-range in BCV or A
-    FWHM (float) : full-width-at-half-maximum in BCV or A
-
-    Returns
-    -------
-    F (float) : the finesse
-
-    Observations
-    ------------
-    Both FSR and FWHM have to have same units.
-    """
-    return float(FSR) / float(FWHM)
-
-
-def calc_queensgate_constant(wavelength, free_spectra_range_bcv):
-    """
-    Returns the Fabry-Perot's Queensgate Constant.
-
-    Parameters
-    ----------
-    wavelength (float):
-    free_spectra_range_bcv (float):
-
-
-    Returns
-    -------
-    queensgate_constant (float) :
-    """
-    return wavelength / free_spectra_range_bcv
-
-
-if __name__ == '__main__':
-
-    app = QtWidgets.QApplication(sys.argv)
-    #app.setStyle("cleanlooks")
-    ex = Main()
-    sys.exit(app.exec_())
+        self._isRunning = False
+        self.signal_running.emit(self._isRunning)

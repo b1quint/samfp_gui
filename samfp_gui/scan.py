@@ -16,6 +16,7 @@ logging.basicConfig()
 log = logging.getLogger("samfp.scan")
 log.setLevel(logging.DEBUG)
 
+
 def main():
 
     cfg = configparser.RawConfigParser()
@@ -171,6 +172,8 @@ def set_binning(bin_size):
     Parameters
     ----------
     bin_size (string) : bin size
+    or
+    bin_size (int) : bin size
 
     Returns
     -------
@@ -178,7 +181,13 @@ def set_binning(bin_size):
     """
     binx = bin_size
     biny = bin_size
-    message = send_command('dhe set binning {:s} {:s}'.format(binx, biny))
+
+    if isinstance(bin_size, int):
+        message = send_command('dhe set binning {:d} {:d}'.format(binx, biny))
+    elif isinstance(bin_size, str):
+        message = send_command('dhe set binning {:s} {:s}'.format(binx, biny))
+    else:
+        raise TypeError('bin_size counld not be understood (not an int nor str')
     return message
 
 
@@ -352,6 +361,7 @@ def set_scan_start(zstart=0, key="FPZINIT"):
     -------
     message (string) : DONE if successful.
     """
+    zstart = int(zstart)
     s = "dhe dbs set {key:s} {zstart:f}".format(**locals())
     message = send_command(s)
     return message
@@ -370,7 +380,8 @@ def set_scan_current_sweep(sweep=0, key="FAPERSWP"):
     -------
     message (string) : DONE if successful.
     """
-    message = send_command('dhe dbs set {key:s} {sweep:f}'.format(**locals()))
+    sweep = int(sweep)
+    message = send_command('dhe dbs set {key:s} {sweep:d}'.format(**locals()))
     return message
 
 
