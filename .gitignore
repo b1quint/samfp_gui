@@ -2,7 +2,9 @@
 samfp_gui/custom_widgets.pyc
 samfp_gui/methods.pyc
 samfp_gui/pages.pyc
-.idea/*
+.idea/
+.idea/misc.xml
+.idea/workspace.xml
 .idea/codeStyleSettings.xml
 samfp_gui/qt/
 samfp_gui/ui_files/
