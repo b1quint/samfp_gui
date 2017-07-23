@@ -835,32 +835,34 @@ class Scan(QtCore.QObject):
 
             for sweep in range(number_of_sweeps):
 
-                print("Moving FP to the initial Z = {:d}".format(z))
-                z = scan.fp_moveabs(z)
-                scan.set_scan_start(z)
+                z = cfg.getint(section, 'zstart')
+                print("Moving FP to the initial Z = {:d}".format(int(round(z))))
+                z = scan.fp_moveabs(int(round(z)))
+                scan.set_scan_start(int(round(z)))
                 scan.set_scan_current_sweep(sweep + 1)
 
                 for channel in range(number_of_channels):
-
-                    z = z + dz
 
                     if self._isRunning is False:
                         self.stop()
                         return
 
                     if 4095 < z or z < 0:
-                        log.warning("Z = {z:d} out of the allowed range [0, 4095]".format(z))
+                        log.warning("Z = {z:d} out of the allowed range [0, 4095]".format(int(round(z))))
                         continue
-
-                    # Increment a step
-                    self._step += 1
-                    self.on_change_value(self._step)
 
                     scan.fp_moveabs(int(round(z)))
                     scan.set_scan_current_z(int(round(z)))
 
                     time.sleep(stime)
                     scan.expose()
+
+                    # Increment a step
+                    self._step += 1
+                    self.on_change_value(self._step)
+                    z = z + dz
+
+
 
         # Leaving gracefully
         self.stop()
