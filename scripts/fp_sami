@@ -8,7 +8,10 @@ import scipy
 import scipy.constants as const
 import time
 import datetime
+import os
 import sys
+
+from builtins import input
 
 """
     
@@ -30,25 +33,17 @@ NOTATIONS:
 
 print("\n{}".format("-"*100))
 print("\n WELCOME ! ")
-#print(time.gmtime())
 print("    ",time.strftime('%a, %d %b %Y %H:%M:%S GMT'))
 print("\n     This program prepares your script to run on FP/SAMI")
-#print("\n     START OF THE PROGRAM")
 
-#interactive = True
-interactive = False
+interactive = True
+
 
 def main():
-
     """
-   
-CONSTANTS
-   
+    CONSTANTS
     """
-    #celerite_plus=const.physical_constants["speed of light in vacuum"]
     celerite    = const.physical_constants["speed of light in vacuum"][0] / 1000.       # in km/s
-    #print("celerite = ",celerite)
-    #celerite    = 299792.458
 
     lamb_halpha = 6562.78
     lamb_SIIf   = 6716.47
@@ -72,7 +67,7 @@ INITIALISATION OF THE TWO SCRIPT FILES
     """ 2) INITIALISATION OF THE RUNNING DIRECTORY """
 
     #dirtime = time.strftime('%Y%m%d')
-    dirtime = "20161002"
+    dirtime = "20170723"
     if interactive:
         print("\n Data of the observing run. ")
         print(" The date of the run (e.g. 20150130) will be automatically added to the address of the directory you will give now")
@@ -87,7 +82,7 @@ INITIALISATION OF THE TWO SCRIPT FILES
         print(dirtime)
         running = input("\n Give the running directory name where you will put and run the script (e.g. 001): ")
         #running="012"
-        sdir = "/home2/images/" + dirtime + '/' + running
+        sdir = os.path.join("/home2/images/", dirtime, running)
 
     """ 3) SCRIPT TO RUN TO COPY THE SCANNING SCRIPT FROM MY COMPUTER TO BTFI COMPUTER """
 
