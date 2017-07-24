@@ -41,7 +41,7 @@ setup(
     packages=['samfp_gui'],
     package_dir={'samfp_gui': 'samfp_gui'},
     package_data={'samfp_gui': ['icons/*.png']},
-    scripts=['scripts/samfp-gui'],
+    scripts=['scripts/samfp-gui', 'scripts/fp_sami'],
     zip_safe=False,
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
