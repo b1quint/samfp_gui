@@ -19,7 +19,7 @@ class PageScan(QtWidgets.QWidget):
         self.n_channels = IntTField("Number of channels:", 5)
         self.n_sweeps = IntTField("Number of sweeps:", 5)
         self.z_start = IntTField("Z Start [bcv]:", 1024)
-        self.z_step = IntTField("Z Step [bcv]:", -10)
+        self.z_step = FloatTField("Z Step [bcv]:", -10)
 
         max_width = 75
         self.n_channels.set_field_max_width(max_width)
