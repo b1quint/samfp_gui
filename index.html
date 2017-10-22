@@ -1,0 +1,12 @@
+---
+layout: single
+permalink: /
+readme: README.md
+author_profile: false
+header:
+  overlay_color: "#5e616c"
+  overlay_image: "/assets/images/samfp_header.svg"
+---
+
+{% capture my_include %}{% include_relative {{ page.readme }} %}{% endcapture %}
+{{ my_include | markdownify }}

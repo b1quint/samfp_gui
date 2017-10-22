@@ -1,0 +1,7 @@
+main:
+  - title: "Download"
+    url: /docs/download/
+  - title: "Install"
+    url: /docs/install/
+  - title: "Documentation"
+    url: /docs/
