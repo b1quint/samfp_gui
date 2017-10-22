@@ -17,9 +17,6 @@ url                      : "https://b1quint.github.io" # the base hostname & pro
 baseurl                  : "/samfp-gui" # the subpath of your site, e.g. "/blog"
 repository               : b1quint/samfp-gui # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
 
-zip_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.zip"
-tar_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.tar.gz"
-
 teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
 # breadcrumbs            : false # true, false (default)
 words_per_minute         : 200
