@@ -1,34 +1,50 @@
 ---
 layout: single
 permalink: /docs/install/
-title: "Install"
+title: "Installation"
 author_profile: false
 ---
 
-We wrote `samfp-tools` in Python 2 but, in principle, it should be compatible
-with Python 3. We simply did not have the chance yet to actually test the Py2
-to Py3 conversion.
+## Dependencies
 
-Since there are several ways which one can install a Python library, we decided
-to develop `samfp` using the Virtual Environment
-[Astroconda](https://astroconda.readthedocs.io/en/latest/) under [Anaconda](https://www.continuum.io/downloads). Once you have both installed
-and running properly, activate the Astroconda Virtual Environment by typing
+I am just now updating from PyQt4 to PyQt5 since it seems to be the default when
+ installing PyQt using the `conda install pyqt` command. Because of that, the
+ requirements also changed a bit. Here is the known requirements:
 
-  ```bash
-   source activate astroconda
-  ```
-  in a terminal.
+- Python >= 2.6
+- PyQt >= 5
+- ConfigParser
+- NumPy
 
-After that, use `pip` to install `samfp` and its requirements:
+I **strongly recommend** you to use [Anaconda](https://www.continuum.io/downloads) and the
+[Astroconda Channel](https://astroconda.readthedocs.io/en/latest/)
+since it is supposed to be an standard library and it was where this packaged
+was developed on.
 
-  ```bash
-  cd $path_to_samfp
-  pip install -r requirements.txt
-  pip install .
-  ```
-There is a know problem where both Numpy and SciPy fails to run under Anaconda because of a library called `mkl`. To fix that, type the following command
 
-  ```bash
-  conda install nomkl
-  ```
-After that, you should be able to run the SAM-FP Tools scripts from anywhere in your system, as long as you are the Virtual Environment where they were installed (e.g. Astroconda).
+## Install
+
+ Once downloaded, enter the folder that was created and type:
+
+```bash
+$ pip install -r requirements.txt
+$ pip install .  
+```
+
+ If you are not a superuser you can either add the `--user`
+flag so [PIP will install locally](https://pip.pypa.io/en/stable/reference/pip_install/#id43)
+or you can use a
+[Python Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
+and installing it inside.
+
+ If you are using [Astroconda](https://astroconda.readthedocs.io/en/latest/),
+ you will have to fix the installation by typing
+
+```bash
+$ conda install nomkl
+```
+
+  [MKL](https://software.intel.com/en-us/mkl) is the Intel Math Kernel Libraty
+    which is used by NumPy and SciPy and other Python libraries. This may
+    cause their installation to crash under [Anaconda](https://www.continuum.io/downloads) Virtual Environments
+    and that is why you may have to install a version that does not rely on it.

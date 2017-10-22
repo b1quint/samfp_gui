@@ -14,8 +14,8 @@ title_separator          : "-"
 name                     : "Bruno Quint"
 description              : "A Qt GUI for the SAM-FP observation mode at the SOAR Telescope."
 url                      : "https://b1quint.github.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
-baseurl                  : "/samfp-tools" # the subpath of your site, e.g. "/blog"
-repository               : b1quint/samfp-tools # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
+baseurl                  : "/samfp-gui" # the subpath of your site, e.g. "/blog"
+repository               : b1quint/samfp-gui # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
 
 zip_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.zip"
 tar_url: "https://github.com/b1quint/samfp_gui/archive/samfp-gui_v0.1.tar.gz"
@@ -96,7 +96,7 @@ author:
   bitbucket        :
   codepen          :
   dribbble         :
-  flickr           :
+  flickr           : "https://www.flickr.com/people/bruno_quint/"
   facebook         : "https://www.facebook.com/b1quint"
   foursquare       :
   github           : "https://github.com/b1quint"
