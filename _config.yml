@@ -85,7 +85,7 @@ analytics:
     tracking_id          :
 
 
-# Site Author
+# Site Author ------------------------------------------------------------------
 author:
   name             : "Bruno Quint"
   avatar           : "assets/images/profile_bruno-quint.jpg" # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
@@ -104,10 +104,10 @@ author:
   keybase          :
   instagram        : "https://www.instagram.com/b1quint/"
   lastfm           :
-  linkedin         :
+  linkedin         : "https://www.linkedin.com/in/bruno-quint-94999396/"
   pinterest        :
   soundcloud       :
-  stackoverflow    : # "123456/username" (the last part of your profile url, e.g. http://stackoverflow.com/users/123456/username)
+  stackoverflow    : "2333908/bruno-quint" # "123456/username" (the last part of your profile url, e.g. http://stackoverflow.com/users/123456/username)
   steam            : "b1quint"
   tumblr           :
   twitter          :
@@ -115,6 +115,7 @@ author:
   weibo            :
   xing             :
   youtube          : # "https://youtube.com/c/MichaelRoseDesign"
+#-------------------------------------------------------------------------------
 
 # Reading Files
 include:
